@@ -1,7 +1,7 @@
 """Algorithm interface shared by all methods (generated algorithms and baselines).
 
 Rules:
-- __init__ receives budget, dim and random_seed (passed by the evaluator, seeds 120-129).
+- __init__ receives budget, dim, initial_points, and random_seed (passed by the evaluator, seeds 120-129).
 - Use random_seed for ALL randomness inside the algorithm; do not hard-code seeds.
 - __call__ receives func; x must be a numpy array of shape (dim,).
 - Search space is [-5, 5]^dim. Minimization.
