@@ -1,5 +1,5 @@
 from bbob import BBOBFunction
-from rw_problem import PracticalProblem
+from benchmarks.practical_problem import PracticalProblem
 
 import numpy as np
 

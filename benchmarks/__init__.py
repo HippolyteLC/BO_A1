@@ -2,10 +2,10 @@ import ioh
 
 import os
 
+
 class ObjectiveFunction:
-    def __init__(self, dimension, seed, log_dir):
+    def __init__(self, dimension, log_dir):
         self.dimension = dimension
-        self.seed = seed
         self.log_dir = log_dir
         self.problem = None
 

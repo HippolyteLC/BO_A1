@@ -1,5 +1,6 @@
 .venv/
 __pycache__/
+.pytest_cache/
 .env
 *:Zone.Identifier
 test_problems.py
