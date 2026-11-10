@@ -50,13 +50,16 @@ An example of such code (a simple random search), is as follows:
 import numpy as np
 
 class RandomSearch:
-    def __init__(self, budget=10000, dim=10):
+    def __init__(self, budget: int, dim: int, initial_points: int, random_seed: int):
         self.budget = budget
         self.dim = dim
+        self.initial_points = initial_points
+        self.random_seed = random_seed
         self.f_opt = np.inf
         self.x_opt = None
 
     def __call__(self, func):
+        np.random.seed(self.random_seed)
         for i in range(self.budget):
             x = np.random.uniform(func.bounds.lb, func.bounds.ub)
 
@@ -110,13 +113,6 @@ def evaluate_simple(solution, explogger=None):
         solution.set_scores(0, feedback=f"Runtime/Syntax error: {e}")
         return solution
 
-    # Instantiate the class with budget=100, dim=1
-    try:
-        AlgorithmClass = local_env[alg_name]
-        algo = AlgorithmClass(budget=FUNCTION_EVALS, dim=DIM)
-    except Exception as e:
-        solution.set_scores(0, feedback=f"Instantiation error: {e}")
-        return solution
 
     # Now run the algorithm
     best_f = math.inf
@@ -126,12 +122,19 @@ def evaluate_simple(solution, explogger=None):
         # If over budget, we penalize heavily
         best_f = 9999
 
+    # test algorithm init 
+    try:
+        AlgorithmClass = local_env[alg_name]
+        algo = AlgorithmClass(budget=FUNCTION_EVALS, dim=DIM, initial_points=10)
+    except Exception as e:
+        solution.set_scores(0, feedback=f"Instantiation error: {e}")
+        return solution
 
     problem = PracticalProblem(dimension=DIM, log_dir=LOG_DIR)
     for seed in SEEDS:
         np.random.seed(seed)
         try:
-            algo(problem)
+            algo = AlgorithmClass(budget=FUNCTION_EVALS, dim=DIM, initial_points=10, random_seed=seed)
         except OverBudgetException:
             pass
         auc = correct_aoc(problem, l2, budget)
