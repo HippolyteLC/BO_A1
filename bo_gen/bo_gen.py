@@ -11,7 +11,7 @@ from ioh import logger, get_problem
 
 from config.config import ExperimentConfig, ModelConfig
 
-from prompts import VANILLA_ROLE_PROMPT, VANILLA_TASK_PROMPT
+from prompts import VANILLA_ROLE_PROMPT, VANILLA_TASK_PROMPT, ENGINEERED_ROLE_PROMPT, ENGINEERED_TASK_PROMPT
 
 import re
 import textwrap
@@ -40,6 +40,7 @@ def evaluateBBOB(solution, explogger=None):
     except Exception as e:
         # If there's an error in code, set the score to 0
         solution.set_scores(0, feedback=f"Runtime/Syntax error: {e}")
+        print("DEFAULTED TO THIS")
         return solution
 
     # exec(code, globals())
@@ -68,6 +69,18 @@ def evaluateBBOB(solution, explogger=None):
             algorithm(problem)
         except OverBudgetException:
             pass
+        except Exception as e:
+            print("We are failing RIGHT HERE...")
+            error_feedback = (
+                f"Your generated algorithm crashed during execution.\n"
+                f"Exception: {type(e).__name__}\n"
+                f"Details: {str(e)}\n"
+                f"Please correct the implementation."
+            )
+            print(error_feedback)
+            solution.add_metadata("error", error_feedback)
+            solution.set_scores(0.0, error_feedback)
+            return solution
 
         auc = correct_aoc(problem, l2, budget)
         aucs.append(auc)
@@ -91,8 +104,8 @@ if __name__=="__main__":
 
     
 
-    role_prompt = textwrap.dedent(VANILLA_ROLE_PROMPT)
-    task_prompt = textwrap.dedent(VANILLA_TASK_PROMPT)
+    role_prompt = textwrap.dedent(ENGINEERED_ROLE_PROMPT)
+    task_prompt = textwrap.dedent(ENGINEERED_TASK_PROMPT)
 
     # We'll use a small number of iterations for demonstration
     es = LLaMEA(
