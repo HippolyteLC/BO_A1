@@ -12,9 +12,10 @@ import numpy as np
 
 
 class RandomSearch:
-    def __init__(self, budget, dim, random_seed):
+    def __init__(self, budget, dim, initial_points, random_seed):
         self.budget = budget
         self.dim = dim
+        self.initial_points = initial_points
         self.random_seed = random_seed
 
     def __call__(self, func):

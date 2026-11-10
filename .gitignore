@@ -4,3 +4,5 @@ __pycache__/
 .env
 *:Zone.Identifier
 test_problems.py
+results_test/
+plots/test_output/
