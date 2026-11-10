@@ -3,20 +3,23 @@ from llamea import LLaMEA, Ollama_LLM
 import os
 
 from benchmarks.practical_problem import PracticalProblem
+from benchmarks.bbob import BBOBFunction
+
+from misc.utils import aoc_logger, correct_aoc, OverBudgetException
+
+from ioh import logger, get_problem
 
 import re
 import textwrap
 import math
 import numpy as np
 
-from llamea. import aoc_logger
+from datetime import datetime
+
+timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
 
-
-# We implement an exception to stop algorithms that try a too large budget (to prevent infinite loops).
-class OverBudgetException(Exception):
-    """The algorithm tried to do more evaluations than allowed."""
-    pass
+# PROBLEM = "rw"
 
 LOG_DIR = "results"
 
@@ -71,6 +74,12 @@ class RandomSearch:
         return self.f_opt, self.x_opt
 ```
 
+An example of valid imports:
+```
+from gpytorch.likelihoods import GaussianLikelihood
+from botorch.acquisition import ExpectedImprovement, UpperConfidenceBound, ProbabilityOfImprovement
+```
+
 Provide the Python code and a one-line description with the main idea (without enters). Give the response in the format:
 # Description: <short-description>
 # Code:
@@ -81,78 +90,62 @@ Provide the Python code and a one-line description with the main idea (without e
 
 # cite the example from llamea GH
 
-def evaluate_simple(solution, explogger=None):
-    code_str = solution.code  # The Python code the LLM generated
-    alg_name = solution.name
+def evaluateBBOB(solution, explogger=None):
+    auc_mean = 0
+    auc_std = 0
 
-    # We define our 6D search space: x in [-5, 5]^6, budget=60 func evals
-    # We'll create a small function that the generated code should optimize.
-
-    problem = PracticalProblem(dimension=DIM, seed=42, log_dir="test_log")
-    def f(x):
-        # We only allow so many function calls
-        if f.call_count >= FUNCTION_EVALS:
-            raise OverBudgetException("Budget exceeded.")
-        f.call_count += 1
-        return problem(x)
-    f.call_count = 0
-
+    code = solution.code
+    algorithm_name = solution.name
     # Dynamically run the generated code
     # The code is expected to define a class named alg_name, with __init__(budget, dim) and __call__(f).
     # We'll create a safe execution context to run it.
-    safe_globals = {
-        "OverBudgetException": OverBudgetException,
-        "math": math,
-        "np": np,
-    }
-    local_env = {}
+    # safe_globals = {
+    #     "OverBudgetException": OverBudgetException,
+    #     "math": math,
+    #     "np": np,
+    # }
+    # local_env = {}
     try:
-        exec(code_str, safe_globals, local_env)
+        exec(code, globals())
     except Exception as e:
         # If there's an error in code, set the score to 0
         solution.set_scores(0, feedback=f"Runtime/Syntax error: {e}")
         return solution
 
+    # exec(code, globals())
 
-    # Now run the algorithm
-    best_f = math.inf
-    try:
-        best_f, best_x = algo(f)
-    except OverBudgetException:
-        # If over budget, we penalize heavily
-        best_f = 9999
+    error = ""
 
-    # test algorithm init 
-    try:
-        AlgorithmClass = local_env[alg_name]
-        algo = AlgorithmClass(budget=FUNCTION_EVALS, dim=DIM, initial_points=10)
-    except Exception as e:
-        solution.set_scores(0, feedback=f"Instantiation error: {e}")
-        return solution
+    aucs = []
 
-    problem = PracticalProblem(dimension=DIM, log_dir=LOG_DIR)
+    algorithm = None
+    l2 = aoc_logger(budget=FUNCTION_EVALS, upper=1e2, triggers=[logger.trigger.ALWAYS])
+    problem = PracticalProblem(dimension=DIM).problem
+    problem.attach_logger(l2)
+
     for seed in SEEDS:
         np.random.seed(seed)
         try:
-            algo = AlgorithmClass(budget=FUNCTION_EVALS, dim=DIM, initial_points=10, random_seed=seed)
+            algorithm = globals()[algorithm_name](
+                budget=FUNCTION_EVALS, dim=DIM, random_seed=seed
+            )
+            algorithm(problem)
         except OverBudgetException:
             pass
-        auc = correct_aoc(problem, l2, budget)
+
+        auc = correct_aoc(problem, l2, FUNCTION_EVALS)
         aucs.append(auc)
         l2.reset(problem)
         problem.reset()
+    auc_mean = np.mean(aucs)
+    auc_std = np.std(aucs)
 
+    feedback = f"The algorithm {algorithm_name} got an average Area over the convergence curve (AOCC, 1.0 is the best) score of {auc_mean:0.2f} with standard deviation {auc_std:0.2f}."
 
-    # We'll convert it to a "score" where smaller f is better => we do `score = 1/(1 + best_f)`
-    # so that 0 => 1/1 => 1, big f => near 0
-    # Note: LLaMEA is optimizing by default! (bigger is better)
-    score = 1.0 / (1.0 + best_f)
+    print(algorithm_name, algorithm, auc_mean, auc_std)
+    solution.add_metadata("aucs", aucs)
+    solution.set_scores(auc_mean, feedback)
 
-    # Provide feedback
-    feedback_str = f"Algorithm {alg_name} got score={score:.4f} (bigger is better)."
-
-    # Save the score to the solution object
-    solution.set_scores(score, feedback_str)
     return solution
 
 if __name__=="__main__":
@@ -165,13 +158,13 @@ if __name__=="__main__":
 
     # We'll use a small number of iterations for demonstration
     es = LLaMEA(
-        f=evaluate_simple,
+        f=evaluateBBOB,
         llm=llm,
         n_parents=1,
         n_offspring=1,
         role_prompt=role_prompt,
         task_prompt=task_prompt,
-        experiment_name="bo-gen-test-1",
+        experiment_name="bo-gen-test",
         elitism=True, # this promotes local optima (1+1)
         budget=BO_GEN_BUDGET  # Try 3 iterations for a quick demo
     )
@@ -180,3 +173,80 @@ if __name__=="__main__":
     print(f"Best found solution: {best_solution.name}, Score={best_solution.fitness:.4f}")
     print(f"Generated code:\n{best_solution.code}")
     print(f"Additional feedback: {best_solution.feedback}")
+
+
+
+
+# def evaluate_simple(solution, explogger=None):
+#     code_str = solution.code  # The Python code the LLM generated
+#     alg_name = solution.name
+
+#     # We define our 6D search space: x in [-5, 5]^6, budget=60 func evals
+#     # We'll create a small function that the generated code should optimize.
+
+#     problem = PracticalProblem(dimension=DIM, seed=42, log_dir="test_log")
+#     def f(x):
+#         # We only allow so many function calls
+#         if f.call_count >= FUNCTION_EVALS:
+#             raise OverBudgetException("Budget exceeded.")
+#         f.call_count += 1
+#         return problem(x)
+#     f.call_count = 0
+
+#     # Dynamically run the generated code
+#     # The code is expected to define a class named alg_name, with __init__(budget, dim) and __call__(f).
+#     # We'll create a safe execution context to run it.
+#     safe_globals = {
+#         "OverBudgetException": OverBudgetException,
+#         "math": math,
+#         "np": np,
+#     }
+#     local_env = {}
+#     try:
+#         exec(code_str, safe_globals, local_env)
+#     except Exception as e:
+#         # If there's an error in code, set the score to 0
+#         solution.set_scores(0, feedback=f"Runtime/Syntax error: {e}")
+#         return solution
+
+
+#     # Now run the algorithm
+#     best_f = math.inf
+#     try:
+#         best_f, best_x = algo(f)
+#     except OverBudgetException:
+#         # If over budget, we penalize heavily
+#         best_f = 9999
+
+#     # test algorithm init 
+#     try:
+#         AlgorithmClass = local_env[alg_name]
+#         algo = AlgorithmClass(budget=FUNCTION_EVALS, dim=DIM, initial_points=10)
+#     except Exception as e:
+#         solution.set_scores(0, feedback=f"Instantiation error: {e}")
+#         return solution
+
+#     problem = PracticalProblem(dimension=DIM, log_dir=LOG_DIR)
+#     for seed in SEEDS:
+#         np.random.seed(seed)
+#         try:
+#             algo = AlgorithmClass(budget=FUNCTION_EVALS, dim=DIM, initial_points=10, random_seed=seed)
+#         except OverBudgetException:
+#             pass
+#         auc = correct_aoc(problem, l2, budget)
+#         aucs.append(auc)
+#         l2.reset(problem)
+#         problem.reset()
+
+
+#     # We'll convert it to a "score" where smaller f is better => we do `score = 1/(1 + best_f)`
+#     # so that 0 => 1/1 => 1, big f => near 0
+#     # Note: LLaMEA is optimizing by default! (bigger is better)
+#     score = 1.0 / (1.0 + best_f)
+
+#     # Provide feedback
+#     feedback_str = f"Algorithm {alg_name} got score={score:.4f} (bigger is better)."
+
+#     # Save the score to the solution object
+#     solution.set_scores(score, feedback_str)
+#     return solution

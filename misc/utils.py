@@ -1,6 +1,7 @@
 import numpy as np
 import re
 
+import os
 
 # try:
 from ioh import LogInfo
@@ -97,6 +98,11 @@ class aoc_logger(AbstractLogger):
     def reset(self, func):
         super().reset()
         self.aoc = 0
+
+    def log_results(self, fp):
+        filepath = os.path.join(self.log_dir, fp)
+        with open(filepath, "w") as f:
+            f.write(f"Final AOC: {self.aoc}\n")
 
 
 class budget_logger(AbstractLogger):

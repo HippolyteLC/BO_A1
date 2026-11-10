@@ -4,7 +4,7 @@ import os
 
 
 class ObjectiveFunction:
-    def __init__(self, dimension, log_dir):
+    def __init__(self, dimension, log_dir=None):
         self.dimension = dimension
         self.log_dir = log_dir
         self.problem = None
