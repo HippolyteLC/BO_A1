@@ -40,6 +40,12 @@ def convert_aucs(aucs):
     auc_std = np.std(aucs)
     return fl_aucs, float(auc_mean), float(auc_std)
 
+
+# ____________________________________________________________________________
+# Below code is copied from the llamea github: 
+# https://github.com/XAI-liacs/LLaMEA/tree/main/misc/utils.py
+# ____________________________________________________________________________
+
 class ThresholdReachedException(Exception):
     """The algorithm reached the lower threshold."""
 

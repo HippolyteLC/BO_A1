@@ -215,3 +215,102 @@ Provide the Python code and a one-line description with the main idea (without e
 <code>
 ```
 """
+
+BO_TEMPLATE_TASK_PROMPT = """Design a novel and efficient Bayesian Optimization algorithm that minimizes a black-box function.
+Results are scored by the area over the convergence curve, so finding good points early is rewarded.
+
+### Problem facts
+- func is a MINIMIZATION problem. It takes a numpy array of shape (dim,) and returns a float.
+- The search box is [-5, 5]^dim (dim = 6). It equals func.bounds.lb and func.bounds.ub.
+- Objective values are non-negative, heavy-tailed (from about 0 to over 10000) and the landscape is multimodal.
+- You may call func at most `budget` times in total, including the initial design (budget = 60, initial_points = 10 in practice). Never exceed it.
+
+### Code template (keep the class name, method names, signatures and return formats; fill in the bodies)
+```python
+import numpy as np
+import torch
+from torch.quasirandom import SobolEngine
+from botorch.models import SingleTaskGP
+from botorch.fit import fit_gpytorch_mll
+from botorch.optim import optimize_acqf
+from botorch.acquisition import qLogExpectedImprovement, qUpperConfidenceBound
+from gpytorch.mlls import ExactMarginalLogLikelihood
+from gpytorch.kernels import MaternKernel, ScaleKernel
+
+class Optimize_with_BO:
+    def __init__(self, budget: int, dim: int, initial_points: int, random_seed: int):
+        self.budget = budget
+        self.dim = dim
+        self.random_seed = random_seed
+        # bounds has shape (2, dim): bounds[0] lower, bounds[1] upper
+        self.bounds = np.array([[-5.0] * dim, [5.0] * dim])
+        # X has shape (n_points, dim), y has shape (n_points, 1); keep both as numpy arrays
+        self.X = None
+        self.y = None
+        self.n_evals = 0
+        self.n_init = min(initial_points, budget)
+        # add your own hyperparameters here, always with default values
+
+    def _sample_points(self, n_points):
+        # Initial design or candidate sampling (Sobol with scramble=True, LHS, ...).
+        # Return a numpy array of shape (n_points, dim) inside self.bounds.
+
+    def _fit_model(self, X, y):
+        # Decide how to transform y (raw values are heavy-tailed), choose the surrogate and kernel,
+        # fit it and return the fitted model. Convert X and y to torch.double tensors inside this method.
+        # The surrogate is trained on a MAXIMIZATION target if you use BoTorch acquisition functions.
+
+    def _acquisition_function(self, X):
+        # Evaluate your acquisition function for the points in X.
+        # Return an array of shape (n_points, 1).
+
+    def _select_next_points(self, batch_size):
+        # Choose the next points to evaluate by optimizing or sampling the acquisition function.
+        # You may use optimize_acqf, random candidates, a trust region around the incumbent, or a hybrid.
+        # Return a numpy array of shape (batch_size, dim) inside self.bounds.
+
+    def _evaluate_points(self, func, X):
+        # Evaluate func on each row of X. Never evaluate more than self.budget - self.n_evals points
+        # (truncate X if needed). Update self.n_evals.
+        # Return an array of shape (n_points, 1).
+
+    def _update_eval_points(self, new_X, new_y):
+        # Append new_X and new_y to self.X and self.y (create them if None).
+
+    def __call__(self, func):
+        # Main minimization loop:
+        #   X_init = self._sample_points(self.n_init)
+        #   y_init = self._evaluate_points(func, X_init)
+        #   self._update_eval_points(X_init, y_init)
+        #   while self.n_evals < self.budget:
+        #       model = self._fit_model(self.X, self.y)
+        #       X_next = self._select_next_points(1)
+        #       y_next = self._evaluate_points(func, X_next)
+        #       self._update_eval_points(X_next, y_next)
+        # !!! Do not call func anywhere except inside _evaluate_points. !!!
+        # Return (best_f, best_x): best_f is a float, best_x a numpy array of shape (dim,).
+```
+
+### Be creative within these limits
+Choose ONE coherent idea and implement it fully, for example a trust region around the incumbent, Thompson sampling, a portfolio of acquisition functions, a different kernel, an output transformation, or an adaptive exploration schedule.
+Do not just copy plain Expected Improvement with a default GP.
+
+### Hard rules (these avoid common crashes)
+- Use ONLY BoTorch, GPyTorch, PyTorch, NumPy and SciPy.
+- BoTorch MAXIMIZES. If you fit the model on minimization values, negate the target before building the acquisition function and compute best_f accordingly.
+- train_X must have shape (n, dim) and train_Y must have shape (n, 1). Use .unsqueeze(-1) on 1D targets.
+- Use torch.double everywhere. Never mix NumPy arrays and tensors in arithmetic; convert with torch.as_tensor(..., dtype=torch.double). Call .detach().cpu().numpy() before returning values to numpy code.
+- Fit with `from botorch.fit import fit_gpytorch_mll` (NOT fit_gpytorch_model).
+- SobolEngine takes `scramble=True`, NOT `randomized`: SobolEngine(dimension=dim, scramble=True, seed=seed).
+- Raw objective values span several orders of magnitude, so consider log10(1 + y) plus standardization before fitting. Working in the unit cube and rescaling only when calling func also helps numerically.
+- Set torch.manual_seed and np.random.seed from random_seed.
+- Keep the algorithm cheap: use at most 5 optimizer restarts and 64 raw samples in optimize_acqf, because it runs many times.
+- Do not wrap the whole loop in a try/except that falls back to random search.
+
+Provide the Python code and a one-line description with the main idea (without enters). Give the response in the format:
+# Description: <short-description>
+# Code:
+```python
+<code>
+```
+"""

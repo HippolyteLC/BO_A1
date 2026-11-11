@@ -36,7 +36,7 @@ class Evaluator:
             exec(code, globals())
         except Exception as e:
             # If there's an error in code, set the score to 0
-            solution.set_scores(self.fallback_score, feedback=f"Runtime/Syntax error: {e}")
+            solution.set_scores(self.fall_back_score, feedback=f"Runtime/Syntax error: {e}")
             print(e)
             return solution
 
@@ -48,7 +48,7 @@ class Evaluator:
 
         l2 = aoc_logger(budget=self.function_budget, upper=self.upper, lower=self.lower, triggers=[logger.trigger.ALWAYS])
         # problem = PracticalProblem(dimension=self.dimension).problem
-        problem = make_problem(self.problem)
+        problem, f_opt = make_problem(self.problem)
         problem.attach_logger(l2)
 
         for seed in self.seeds:

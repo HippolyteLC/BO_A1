@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 
-from llamea import Ollama_LLM
+from stage1.model.client import OllamaWrapper
+
+import os
 
 @dataclass
 class ExperimentConfig:
@@ -13,6 +15,11 @@ class ExperimentConfig:
     llamea_function_budget: int = 60 #10d
     experiment_evaluation_budget: int = 600 #100d
 
+    upper: int = 1e3
+    lower: int = 1e-2
+
+    fall_back: int = 0
+
     def __post_init__(self):
         if not self.seeds:
             self.seeds = [10 * self.group_number + r for r in range(10)]
@@ -20,10 +27,13 @@ class ExperimentConfig:
 @dataclass
 class ModelConfig:
     model_name: str = "qwen2.5-coder-14b-q4:latest"
-    llm: Ollama_LLM = field(init=False, repr=False)
+    llm: OllamaWrapper = field(init=False, repr=False)
+    temperature: float = 0.5
+    context_window: int = 16384
 
     def __post_init__(self):
-        self.llm = Ollama_LLM(model=self.model_name)
+        os.environ["OPENAI_API_BASE"] = "http://localhost:11434/v1" 
+        self.llm = OllamaWrapper(model=self.model_name, temperature=self.temperature, num_ctx=self.context_window)
 
 
 # LOG_DIR = "results"
