@@ -764,3 +764,132 @@ Code:
 <complete executable Python code>
 ```
 """
+
+
+BO_STUB_TASK_PROMPT_1 = """
+You are an expert in Bayesian Optimization and Python/BoTorch algorithm design. Your task is to write a complete, bug-free Python class implementing a Bayesian Optimization algorithm for continuous single-objective black-box minimization, evaluated using Area Over the Convergence Curve (AOCC) on multimodal benchmark functions (such as Rotated Rastrigin).
+
+
+
+### Output Format (Strict)
+
+Respond using ONLY the exact two-part structure below—no markdown fences outside the Code section, no extra explanations, and no conversational text:
+
+
+
+Description: <A single concise sentence describing the surrogate model, target transformation, and acquisition strategy.>
+
+Code:
+
+```python
+
+<Complete, self-contained Python implementation>
+
+```
+
+
+
+### Required Class Interface
+
+Implement a class `Optimize_with_BO` with the following signature and behavior:
+
+- `__init__(self, budget: int, dim: int, initial_points: int, random_seed: int)`
+
+  - Store `budget`, `dim`, and `random_seed`.
+
+  - Set `self.n_init = min(initial_points, budget)`.
+
+- `__call__(self, func)`:
+
+  - Minimize `func(x)` within `self.budget` total function evaluations.
+
+  - Return `(best_f, best_x)` where `best_f` is a Python `float` representing the minimum objective value found and `best_x` is a 1D NumPy array of shape `(dim,)`.
+
+
+
+### Critical Technical & API Rules (Must Follow Exactly)
+
+1. **Objective Function Contract (`func`)**:
+
+   - `func` may be an `ioh.iohcpp.problem.RealSingleObjective` instance or standard Python callable.
+
+   - ALWAYS pass a 1D Python `list[float]` of length `dim` when calling `func`, and cast the output to `float`:
+
+     `y_val = float(func(x_scaled_np.tolist()))`
+
+   - NEVER pass a `torch.Tensor`, 2D list, or uncast return value directly to comparisons.
+
+2. **Bounds Handling & Scaling**:
+
+   - Extract bounds safely:
+
+     ```python
+
+     if hasattr(func, "bounds") and hasattr(func.bounds, "lb") and hasattr(func.bounds, "ub"):
+
+         lb = np.asarray(func.bounds.lb, dtype=np.float64).reshape(-1)
+
+         ub = np.asarray(func.bounds.ub, dtype=np.float64).reshape(-1)
+
+         if lb.size == 1:
+
+             lb = np.full(self.dim, lb.item(), dtype=np.float64)
+
+         if ub.size == 1:
+
+             ub = np.full(self.dim, ub.item(), dtype=np.float64)
+
+     else:
+
+         lb = np.full(self.dim, -5.0, dtype=np.float64)
+
+         ub = np.full(self.dim, 5.0, dtype=np.float64)
+
+     ```
+
+   - Optimize internally on the unit hypercube `[0, 1]^dim` using `dtype=torch.float64`.
+
+   - When using `botorch.utils.transforms.unnormalize(X, bounds)`, `bounds` MUST be a single `torch.Tensor` of shape `(2, self.dim)` and `dtype=torch.float64` (row 0 = lower bounds, row 1 = upper bounds). Never pass two separate 1D tensors.
+
+   - To map unit points `x_unit` in `[0, 1]^dim` to domain coordinates:
+
+     `x_scaled = lb + np.clip(x_unit, 0.0, 1.0) * (ub - lb)`
+
+3. **Minimization-to-Maximization Consistency**:
+
+   - BoTorch maximizes while `func` is minimized. Convert observed minimization values `y_tensor` into maximization targets `train_Y` of shape `(n, 1)` (for example, `y_neg = -y_tensor`, followed by standardization or monotonic rank/log compression).
+
+   - `best_f_max` passed to acquisition functions (such as `qLogExpectedImprovement` or `ExpectedImprovement`) MUST equal `float(train_Y.max().item())` on that EXACT same transformed maximization scale. Never compute `-y.max()` on raw minimization values.
+
+   - Use `from botorch.fit import fit_gpytorch_mll` and `fit_gpytorch_mll(mll)` (NEVER `fit_gpytorch_model`). Pass custom kernels to `SingleTaskGP` via `covar_module=...` (NEVER `kernel=...`).
+
+4. **Budget & Numerical Stability**:
+
+   - Use Sobol quasi-random sampling (`torch.quasirandom.SobolEngine`) for the initial design (`self.n_init` points).
+
+   - Track `n_evals` strictly so total calls to `func` never exceed `self.budget`.
+
+   - Keep `num_restarts <= 5` and `raw_samples <= 64` in `optimize_acqf`.
+
+   - Wrap GP fitting (`fit_gpytorch_mll`) and `optimize_acqf` in a `try/except` fallback (e.g., perturbed best point or Sobol/local Gaussian candidate) so numerical Cholesky/L-BFGS errors never crash a run.
+
+5. **Multimodal & AOCC Optimization Strategy**:
+
+   - Prioritize rapid early improvement and escape from local optima using strategies such as:
+
+     - Monotonic log/power or rank-based target warping to smooth steep multimodal ridges.
+
+     - ARD Matérn-5/2 (`MaternKernel(nu=2.5, ard_num_dims=self.dim)`) or composite kernels.
+
+     - `qLogExpectedImprovement` or `qUpperConfidenceBound` with decaying exploration weight `beta`, paired with `optimize_acqf` or local trust-region refinement when improvement stalls.
+
+
+
+### Evolutionary Refinement Instruction (Use When Mutating/Improving a Parent Candidate)
+
+If a parent candidate and its traceback or fitness score are provided:
+
+- **If `fitness == 0` or an exception occurred**: Diagnose and fix the exact root cause in the traceback first before altering acquisition hyperparameters. Do not blindly append unused keyword arguments to `optimize_acqf`.
+
+- **If the parent ran cleanly (`fitness > 0`)**: Produce a meaningfully distinct algorithmic variation (e.g., changing target transformation, kernel structure, acquisition schedule, or adaptive trust-region/restart mechanism) rather than cosmetic parameter tweaks.
+"""
