@@ -28,12 +28,13 @@ class ExperimentConfig:
 class ModelConfig:
     model_name: str = "qwen2.5-coder-14b-q4:latest"
     llm: OllamaWrapper = field(init=False, repr=False)
-    temperature: float = 0.5
+    temperature: float = 0.3
     context_window: int = 16384
+    top_p: float = 0.95
 
     def __post_init__(self):
         os.environ["OPENAI_API_BASE"] = "http://localhost:11434/v1" 
-        self.llm = OllamaWrapper(model=self.model_name, temperature=self.temperature, num_ctx=self.context_window)
+        self.llm = OllamaWrapper(model=self.model_name, temperature=self.temperature, num_ctx=self.context_window, top_p=self.top_p)
 
 
 # LOG_DIR = "results"

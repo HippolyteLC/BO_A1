@@ -5,10 +5,11 @@ import ollama
 import time
 
 class OllamaWrapper(Ollama_LLM):
-    def __init__(self, model="llama3.2", temperature=0.5, num_ctx=16384, **kwargs):
-        super().__init__(model, **kwargs)
-        self.temperature = temperature
-        self.num_ctx = num_ctx
+    def __init__(self, model="llama3.2", **kwargs):
+        super().__init__(model)
+        # self.temperature = temperature
+        # self.num_ctx = num_ctx
+        self.options = kwargs
 
     def query(self, session_messages, max_retries: int = 5, default_delay: int = 10):
         """
@@ -32,7 +33,8 @@ class OllamaWrapper(Ollama_LLM):
                 response = ollama.chat(
                     model=self.model,
                     messages=[{"role": "user", "content": big_message}],
-                    options={"temperature": self.temperature, "num_ctx": self.num_ctx}
+                    options=self.options
+                    # options={"temperature": self.temperature, "num_ctx": self.num_ctx}
 
                 )
                 return response["message"]["content"]

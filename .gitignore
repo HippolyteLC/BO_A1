@@ -6,3 +6,4 @@ __pycache__/
 test_problems.py
 results_test/
 plots/test_output/
+ignored_code/

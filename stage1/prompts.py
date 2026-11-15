@@ -7,7 +7,7 @@ and a __call__(self, func) method that tries to find x in [-5, 5]^dim that minim
 The function should return the tuple best_f, best_x (value best found and the location).
 Implement an efficient algorithm for this Bayesian Optimization task. The code you implement must
 only use BoTorch and GPyTorch libraries for the optimization; 
-You may also use scipy to generate random samples for the initial DoE and then transform the variables fromlists or numpy arrays into torch tensors. 
+You may also use scipy to generate random samples for the initial DoE and then transform the variables from lists or numpy arrays into torch tensors. 
 Do not use any other optimization libraries. You may append additional helper functions or classes if needed, but the main class must be named Optimize_with_BO and must have the specified methods.
 You can also use other BoTorch acquisition functions like qNoisyExpectedImprovement, qLogNoisyExpectedImprovement, qExpectedImprovement, qLogExpectedImprovement, qUpperConfidenceBound, and you can use the MaternKernel and ScaleKernel from GPyTorch.
 You can also design your own acquisition function if you want, but it must be based on the BoTorch framework. Check for example the SAWEI from Benjamins et al. (2023) paper, which is a combination of qLogExpectedImprovement and qUpperConfidenceBound.
@@ -39,23 +39,12 @@ class RandomSearch:
         return self.f_opt, self.x_opt
 ```
 
-An example of valid imports:
-```
-from gpytorch.likelihoods import GaussianLikelihood
-from botorch.acquisition import ExpectedImprovement, UpperConfidenceBound, ProbabilityOfImprovement
-```
-
 Provide the Python code and a one-line description with the main idea (without enters). Give the response in the format:
 # Description: <short-description>
 # Code:
 ```python
 <code>
 ```
-
-IMPORTANT TENSOR SHAPE REQUIREMENTS FOR BOTORCH:
-- Training inputs `train_X` must be 2D tensors of shape `(n_samples, dim)`.
-- Training targets `train_Y` must be strictly 2D tensors of shape `(n_samples, 1)`. Always use `train_Y = train_Y.unsqueeze(-1)` if it is 1D before passing it to BoTorch models.
-- Avoid deprecated NumPy/PyTorch conversions; ensure tensors are properly cloned using `sourceTensor.clone().detach()`.
 """
 
 # Description: Role and Task Prompts for LLaMEA BO Algorithm Generation
@@ -312,5 +301,400 @@ Provide the Python code and a one-line description with the main idea (without e
 # Code:
 ```python
 <code>
+```
+"""
+
+BO_SKELETON_TASK_PROMPT = """Write a Python class Optimize_with_BO that minimizes a black-box function with Bayesian Optimization.
+Below is a WORKING baseline. Improve it with ONE or TWO well-chosen changes that make it find good points faster. Keep the class name, the method names and the return format.
+
+### Facts
+- func is a MINIMIZATION problem: func(x) takes a numpy array of shape (dim,) and returns a float. Search box: func.bounds.lb to func.bounds.ub, here [-5, 5]^dim with dim = 6.
+- Objective values are >= 0, span several orders of magnitude (0 to 10000+), and the landscape is multimodal.
+- You may call func at most `budget` times in total (budget = 60, initial_points = 10). Results are scored by the area over the convergence curve, so early progress counts.
+
+### Baseline (everything works as written)
+```python
+import numpy as np
+import torch
+from torch.quasirandom import SobolEngine
+from botorch.models import SingleTaskGP
+from botorch.fit import fit_gpytorch_mll
+from botorch.optim import optimize_acqf
+from botorch.acquisition import qLogExpectedImprovement
+from gpytorch.mlls import ExactMarginalLogLikelihood
+
+class Optimize_with_BO:
+    def __init__(self, budget: int, dim: int, initial_points: int, random_seed: int):
+        self.budget = budget
+        self.dim = dim
+        self.n_init = min(initial_points, budget)
+        self.seed = random_seed
+        torch.manual_seed(random_seed)
+        np.random.seed(random_seed)
+        # Create the sampler ONCE (re-creating it with the same seed repeats the same points).
+        self.sobol = SobolEngine(dimension=dim, scramble=True, seed=random_seed)
+        # Work in the unit cube [0, 1]^dim; rescale only when calling func.
+        self.unit_bounds = torch.stack([torch.zeros(dim), torch.ones(dim)]).double()
+
+    def _initial_design(self, n):
+        # Returns a (n, dim) double tensor in [0, 1].
+        # LHS alternative: torch.tensor(scipy.stats.qmc.LatinHypercube(d=self.dim, seed=self.seed).random(n))
+        return self.sobol.draw(n).double()
+
+    def _fit_model(self, X, y):
+        # X: (n, dim) tensor in [0, 1]. y: (n,) tensor of RAW objective values (minimization).
+        # BoTorch MAXIMIZES, so the target is log-transformed, standardized and NEGATED.
+        z = torch.log10(1.0 + y.clamp_min(0.0))
+        z = (z - z.mean()) / (z.std() + 1e-9)
+        train_Y = (-z).unsqueeze(-1)  # shape (n, 1); this is the only place a dimension is added
+        model = SingleTaskGP(X, train_Y)
+        fit_gpytorch_mll(ExactMarginalLogLikelihood(model.likelihood, model))
+        return model, train_Y.max()  # best value in the maximization convention
+
+    def _next_point(self, model, best_f, X, y):
+        # Returns a (1, dim) tensor in [0, 1].
+        acq = qLogExpectedImprovement(model, best_f=best_f)
+        cand, _ = optimize_acqf(acq, bounds=self.unit_bounds, q=1, num_restarts=5, raw_samples=64)
+        return cand.detach()
+
+    def _evaluate(self, func, x_unit, lb, ub):
+        x = lb + (ub - lb) * x_unit.detach().cpu().numpy()
+        return float(func(x))
+
+    def __call__(self, func):
+        lb = np.asarray(func.bounds.lb, dtype=float).reshape(-1)
+        ub = np.asarray(func.bounds.ub, dtype=float).reshape(-1)
+        X = self._initial_design(self.n_init)
+        y = torch.tensor([self._evaluate(func, x, lb, ub) for x in X], dtype=torch.double)  # shape (n,)
+        while len(y) < self.budget:
+            model, best_f = self._fit_model(X, y)
+            x_new = self._next_point(model, best_f, X, y)
+            y_new = self._evaluate(func, x_new[0], lb, ub)
+            X = torch.cat([X, x_new], dim=0)
+            y = torch.cat([y, torch.tensor([y_new], dtype=torch.double)])
+        i = int(torch.argmin(y))
+        return float(y[i]), lb + (ub - lb) * X[i].numpy()
+```
+
+### Your task: make it better and different
+Change the parts marked as free. Each change must be coherent, and the interfaces above must stay the same. Ideas:
+- `_next_point`: a different acquisition (qUpperConfidenceBound with a decaying beta, Thompson sampling, a mix of two acquisitions), or a TRUST REGION: shrink or grow a radius r around the best point and pass `bounds = torch.stack([(xb - r).clamp(0, 1), (xb + r).clamp(0, 1)])` to optimize_acqf, where xb is the best x so far.
+- `_fit_model`: another kernel via `SingleTaskGP(X, train_Y, covar_module=ScaleKernel(MaternKernel(nu=2.5, ard_num_dims=self.dim)))`, a different output transform, or a smaller or larger initial design.
+- Adaptive rules (restart when stuck, switch from exploration to exploitation as the budget is used).
+
+### Rules
+- Use only torch, botorch, gpytorch, numpy and scipy.
+- Keep the maximization convention: the model is fit on a target where larger is better, and best_f is its maximum.
+- Keep X as a (n, dim) tensor and train_Y as a (n, 1) tensor. y stays 1-D (n,). Do not add extra dimensions.
+- SingleTaskGP takes `covar_module=`, never `kernel=`. Do not pass arguments you are unsure exist.
+- Never call func more than `budget` times. Never wrap the loop in a try/except that falls back to random search.
+- Keep it cheap: num_restarts <= 5 and raw_samples <= 64 in optimize_acqf.
+
+Provide the Python code and a one-line description with the main idea (without enters). Give the response in the format:
+# Description: <short-description>
+# Code:
+```python
+<code>
+```
+"""
+
+
+BO_TEMPLATE_TASK_PROMPT_UPDATED = """Design a novel and efficient Bayesian Optimization algorithm to minimize a black-box function. 
+Early improvements are especially valuable because performance is scored by the area over the convergence curve.
+
+Problem
+Minimization problem: func(x) returns a scalar float, where x is a numpy array of shape (dim,).
+Dimension: dim = 6.
+Search bounds: [-5, 5]^dim, matching func.bounds.lb and func.bounds.ub.
+Objective values are non-negative, heavy-tailed (approximately 0 to over 10000), and the landscape is multimodal.
+Total evaluation budget: 60, including the initial design. Typically, initial_points = 10.
+Never exceed the evaluation budget.
+Code template
+
+Keep the class name, method names, signatures, and return formats unchanged. Implement the missing methods and add any necessary hyperparameters with sensible defaults.
+
+python
+import numpy as np
+import torch
+from torch.quasirandom import SobolEngine
+from botorch.models import SingleTaskGP
+from botorch.fit import fit_gpytorch_mll
+from botorch.optim import optimize_acqf
+from botorch.acquisition import qLogExpectedImprovement, qUpperConfidenceBound
+from gpytorch.mlls import ExactMarginalLogLikelihood
+from gpytorch.kernels import MaternKernel, ScaleKernel
+
+class Optimize_with_BO:
+    def __init__(self, budget: int, dim: int, initial_points: int, random_seed: int):
+        self.budget = budget
+        self.dim = dim
+        self.random_seed = random_seed
+        self.bounds = np.array([[-5.0] * dim, [5.0] * dim])
+
+        self.X = None
+        self.y = None
+        self.n_evals = 0
+        self.n_init = min(initial_points, budget)
+
+        # Add algorithm-specific hyperparameters with defaults.
+        torch.manual_seed(random_seed)
+        np.random.seed(random_seed)
+
+    def _sample_points(self, n_points):
+        \"\"\"Generate initial points using scrambled Sobol sampling.\"\"\"
+        if n_points <= 0:
+            return np.empty((0, self.dim))
+
+        engine = SobolEngine(
+            dimension=self.dim,
+            scramble=True,
+            seed=self.random_seed
+        )
+        unit_points = engine.draw(n_points).double().cpu().numpy()
+
+        return self.bounds[0] + unit_points * (self.bounds[1] - self.bounds[0])
+
+    def _fit_model(self, X, y):
+        # Fit a GP surrogate using torch.double.
+        # Handle heavy-tailed objective values using an appropriate
+        # transformation, such as log10(1 + y), and standardization.
+        # BoTorch acquisition functions maximize, so train on a target
+        # that rewards smaller original objective values.
+        # Return the fitted model.
+
+    def _acquisition_function(self, X):
+        # Evaluate the chosen acquisition function at X.
+        # Return a numpy array of shape (n_points, 1).
+
+    def _select_next_points(self, batch_size):
+        # Select promising points using acquisition optimization,
+        # candidate sampling, a trust region, or a hybrid strategy.
+        # Return a numpy array of shape (batch_size, dim).
+        # All points must lie within self.bounds.
+
+    def _evaluate_points(self, func, X):
+        # Evaluate func once for each row of X.
+        # Never exceed self.budget - self.n_evals evaluations.
+        # Update self.n_evals.
+        # Return a numpy array of shape (n_points, 1).
+
+    def _update_eval_points(self, new_X, new_y):
+        # Append new observations to self.X and self.y.
+        # Both must remain numpy arrays.
+
+    def __call__(self, func):
+        # 1. Generate and evaluate self.n_init Sobol initial points.
+        # 2. Store the observations.
+        # 3. Until the evaluation budget is exhausted:
+        #       a. Fit the surrogate model.
+        #       b. Select one new point.
+        #       c. Evaluate it and update the observations.
+        # 4. Return (best_f, best_x), where best_f is a float and
+        #    best_x is a numpy array of shape (dim,).
+
+        # IMPORTANT: Call func only inside _evaluate_points.
+
+Algorithm design requirements
+
+Choose ONE coherent and creative optimization strategy and implement it fully.
+
+Possible ideas include:
+
+Adaptive trust-region Bayesian Optimization.
+Thompson sampling.
+A portfolio of acquisition functions.
+Adaptive exploration and exploitation.
+A specialized kernel or output transformation.
+A hybrid global and local search strategy.
+
+Do not simply implement standard Expected Improvement with default GP settings. Explain the main idea in one short description.
+
+Technical constraints (strict)
+Use only NumPy, PyTorch, BoTorch, GPyTorch, and SciPy.
+Use torch.double for all GP inputs, targets, bounds, and acquisition calculations.
+Keep training shapes consistent:
+train_X: (n, dim)
+train_Y: (n, 1)
+BoTorch maximizes. Ensure the surrogate target and acquisition function are consistent with minimizing the original objective. Correctly calculate the incumbent best_f in the transformed target space.
+Use .detach().cpu().numpy() when converting tensors to NumPy.
+Use fit_gpytorch_mll from botorch.fit.
+Use scrambled Sobol sampling with SobolEngine(dimension=dim, scramble=True, seed=seed).
+Normalize inputs to the unit cube [0, 1]^dim for GP fitting and acquisition optimization when appropriate. Rescale points to [-5, 5]^dim before evaluating func.
+Handle heavy-tailed outputs carefully. Consider log10(1 + y) followed by standardization.
+Keep computation cheap:
+Maximum 5 optimizer restarts.
+Maximum 64 raw samples in optimize_acqf.
+Prefer optimizing one point per iteration.
+Never evaluate more than the remaining budget.
+Do not wrap the entire optimization loop in try/except or silently fall back to random search.
+Handle numerical issues and GP fitting failures locally where appropriate, without hiding fundamental implementation errors.
+Output requirements
+
+Return only the following format:
+
+Description: <one-line description of the main optimization idea>
+Code:
+python
+<complete, executable Python implementation>
+
+
+The implementation must include every method in the template, preserve all method signatures, and return the correct output format. """
+
+
+
+NEW_PROMPT_1 = """
+Description: <one-line explanation of the main optimization strategy>
+Code:
+python
+<complete Python implementation>
+
+
+You are an expert in Bayesian Optimization, Gaussian Processes, and efficient black-box global optimization. Your task is to implement a competitive Bayesian Optimization algorithm in Python.
+
+Problem
+
+Write a Python class named Optimize_with_BO with the following interface:
+
+python
+class Optimize_with_BO:
+    def __init__(self, budget: int, dim: int, initial_points: int, random_seed: int):
+        ...
+
+    def __call__(self, func):
+        ...
+
+
+The objective is to MINIMIZE an expensive, black-box function:
+
+func(x) accepts a NumPy array of shape (dim,) and returns a scalar.
+The search space is defined by func.bounds.lb and func.bounds.ub.
+The default search space is [-5, 5]^dim.
+The objective is potentially highly multimodal, with many local minima.
+The dimensionality is typically 6.
+The total evaluation budget is typically 60.
+The initial design size is typically 10.
+The random seed must be respected.
+
+Your implementation must return:
+
+python
+best_f, best_x
+
+
+where best_f is the smallest objective value evaluated and best_x is the corresponding NumPy array.
+
+Optimization goal
+
+The algorithm is evaluated using the Area Over the Convergence Curve (AOCC), or an equivalent normalized AUC-based convergence score.
+
+The evaluation score is MAXIMIZED, with an ideal score of 1.0.
+
+However, the underlying objective function is MINIMIZED.
+
+This distinction is essential:
+
+The objective is to find progressively smaller function values.
+Finding a good solution early is more valuable than finding an equally good solution only at the end.
+The algorithm should prioritize rapid early improvements while retaining sufficient exploration to avoid premature convergence.
+The quality of the entire convergence trajectory matters, not just the final best objective value.
+
+Design the algorithm specifically for this evaluation criterion.
+
+Algorithm design freedom
+
+Implement a genuine Bayesian Optimization algorithm using BoTorch and GPyTorch.
+
+You are free to choose the architecture. Do not simply reproduce a conventional GP + Expected Improvement implementation unless you have a compelling reason.
+
+You may consider, combine, or develop approaches involving:
+
+Gaussian Process models with different covariance kernels.
+Automatic relevance determination (ARD).
+Expected Improvement, Log Expected Improvement, Upper Confidence Bound, or their noisy variants.
+Thompson sampling.
+Acquisition function portfolios or adaptive acquisition selection.
+Trust-region Bayesian Optimization.
+Adaptive exploration and exploitation.
+Multiple candidate generation strategies.
+Adaptive initial experimental designs.
+Model-based global exploration and local refinement.
+Restart mechanisms when optimization stagnates.
+Input transformations or objective transformations.
+Other methods supported by the BoTorch framework.
+
+You do not need to implement all these ideas. Select a coherent strategy that is computationally efficient and appropriate for a small evaluation budget.
+
+Avoid unnecessary complexity. A well-designed algorithm with one or two complementary strategies is preferable to a complicated collection of unrelated methods.
+
+Technical requirements
+Use only:
+NumPy
+PyTorch
+BoTorch
+GPyTorch
+SciPy, optionally, for initial sampling or numerical utilities.
+Do not use alternative optimization libraries, such as scikit-optimize, Optuna, Hyperopt, or external Bayesian Optimization implementations.
+All objective evaluations must be performed through func(x).
+Never exceed budget total objective evaluations. Initial design evaluations count toward the budget.
+Use the provided random seed for reproducibility, including all applicable random samplers.
+Support arbitrary positive dim, rather than hardcoding the dimensionality.
+Normalize the input domain internally if beneficial, and correctly transform candidates back to the original bounds before evaluating the objective.
+Maintain the best objective value and corresponding input throughout the entire optimization process.
+The optimization loop must use a valid BoTorch-compatible probabilistic model and acquisition or sampling strategy.
+Ensure that tensor dimensions, data types, model inputs, and acquisition function arguments are consistent with the selected BoTorch APIs.
+Avoid unnecessary computational overhead. The evaluation budget is small, so model fitting and acquisition optimization should remain reasonably inexpensive.
+Do not implement random search as the main optimization algorithm.
+Do not include pseudocode, placeholders, incomplete methods, or undefined variables.
+Do not use a try/except block that silently replaces Bayesian Optimization with random search.
+Important implementation considerations
+BoTorch acquisition functions generally use a MAXIMIZATION convention. If necessary, transform the minimization objective appropriately when training the surrogate model.
+Keep track of raw objective values separately from transformed model targets.
+Ensure the incumbent supplied to an acquisition function follows the maximization convention of that acquisition function.
+Be careful when combining multiple acquisition functions with different output scales.
+Use valid BoTorch APIs and imports. Do not invent function names, arguments, or methods.
+The algorithm must work as a complete, standalone Python implementation.
+Reference example: required interface and evaluation convention
+
+The following is an example of the expected class structure. It is deliberately NOT a Bayesian Optimization algorithm. It demonstrates the evaluation budget, objective bounds, random seed, and return convention.
+
+```python
+import numpy as np
+
+class RandomSearch:
+    def __init__(self, budget: int, dim: int, initial_points: int, random_seed: int):
+        self.budget = budget
+        self.dim = dim
+        self.initial_points = min(initial_points, budget)
+        self.random_seed = random_seed
+
+    def __call__(self, func):
+        rng = np.random.default_rng(self.random_seed)
+
+        lb = np.asarray(func.bounds.lb, dtype=float).reshape(-1)
+        ub = np.asarray(func.bounds.ub, dtype=float).reshape(-1)
+
+        best_f = np.inf
+        best_x = None
+
+        for _ in range(self.budget):
+            x = rng.uniform(lb, ub)
+            f = float(func(x))
+
+            if f < best_f:
+                best_f = f
+                best_x = x.copy()
+
+        return best_f, best_x
+```
+Final instruction
+
+Design and implement your own competitive Bayesian Optimization algorithm. Do not simply copy the reference example or assume a particular acquisition function or GP architecture.
+
+Return only the requested output format:
+
+Description: <one-line description of the main algorithmic idea>
+Code:
+```python
+<complete executable Python code>
 ```
 """

@@ -1,3 +1,5 @@
+# To run: python -m stage1.bo_gen
+
 from llamea import LLaMEA
 
 from benchmarks.practical_problem import PracticalProblem
@@ -9,7 +11,8 @@ from ioh import logger, get_problem
 
 from config.config import ExperimentConfig, ModelConfig
 
-from stage1.prompts import VANILLA_ROLE_PROMPT, VANILLA_TASK_PROMPT, ENGINEERED_ROLE_PROMPT, ENGINEERED_TASK_PROMPT, OPEN_TASK_PROMPT, BO_TEMPLATE_TASK_PROMPT
+from stage1.prompts import *
+
 
 import re
 import textwrap
@@ -24,21 +27,21 @@ silence_warnings()
 
 config = ExperimentConfig()
 
-PROBLEM = "real"
+PROBLEM = "bbob"
 
 if __name__=="__main__":
     role_prompt = textwrap.dedent(ENGINEERED_ROLE_PROMPT)
-    task_prompt = textwrap.dedent(OPEN_TASK_PROMPT)
+    task_prompt = textwrap.dedent(NEW_PROMPT_1)
 
-    evaluator = Evaluator(config, PROBLEM)
+    evaluator = Evaluator(config, PROBLEM, testing=False)
 
     es = LLaMEA(
         f=evaluator,
         llm=ModelConfig().llm,
         n_parents=2,
-        n_offspring=4,
+        n_offspring=5,
         role_prompt=role_prompt,
-        task_prompt=BO_TEMPLATE_TASK_PROMPT,
+        task_prompt=task_prompt,
         experiment_name="bo-gen-test",
         elitism=True, # this promotes local optima (1+1)
         budget=config.llamea_budget  

@@ -6,7 +6,8 @@ from . import ObjectiveFunction
 
         
 class BBOBFunction(ObjectiveFunction):
-    def __init__(self, dimension, log_dir):
+
+    def __init__(self, dimension, log_dir=None):
         super().__init__(dimension, log_dir)
         self.problem = ioh.get_problem(
             15,                              

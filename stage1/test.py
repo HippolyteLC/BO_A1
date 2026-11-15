@@ -1,7 +1,8 @@
 # dummy run on the skeleton to check if evaluate function from bo_gen works. 
 
-from stage1.bo_gen import evaluate
+from stage1.evaluator import Evaluator
 
+from config.config import ExperimentConfig
 
 class DummySolution:
     def __init__(self, code, name):
@@ -11,6 +12,6 @@ class DummySolution:
     def add_metadata(self, key, value):
         self.metadata[key] = value
 
-sol = evaluate(DummySolution(open("stage1/skeleton.py").read(), "Optimize_with_BO"))
+sol = Evaluator(ExperimentConfig(), "real")(DummySolution(open("stage1/test_2.py").read(), "Optimize_with_BO"))
 print(sol.fitness, sol.feedback)
 print(sol.metadata)
