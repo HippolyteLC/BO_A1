@@ -698,3 +698,69 @@ Code:
 <complete executable Python code>
 ```
 """
+
+
+BO_STUB_TASK_PROMPT = """Design and implement a Bayesian Optimization class Optimize_with_BO to MINIMIZE a black-box function func(x) over [func.bounds.lb, func.bounds.ub] (default [-5, 5]^dim).
+Problem & Goal
+func(x) takes a 1D NumPy array of shape (dim,) and returns a scalar (float).
+Typical setup: dim = 6, budget = 60, initial_points = 10, multimodal landscape (y >= 0, wide scale).
+Total func(x) calls (including initial design) must NEVER exceed budget. Respect random_seed.
+Scored by Area Over the Convergence Curve (AOCC): prioritize fast early drops while keeping enough exploration to avoid getting trapped in local minima.
+Required Skeleton (keep class, method names, and return format; initial design is fixed to Sobol sampling)
+import numpy as np
+import torch
+from torch.quasirandom import SobolEngine
+
+```python
+class Optimize_with_BO:
+    def __init__(self, budget: int, dim: int, initial_points: int, random_seed: int):
+        self.budget = budget
+        self.dim = dim
+        self.n_init = min(initial_points, budget)
+        self.seed = random_seed
+        torch.manual_seed(random_seed)
+        np.random.seed(random_seed)
+        self.sobol = SobolEngine(dimension=dim, scramble=True, seed=random_seed)
+        self.unit_bounds = torch.stack([torch.zeros(dim), torch.ones(dim)]).double()
+
+    def _initial_design(self, n: int) -> torch.Tensor:
+        # Fixed: returns a (n, dim) double tensor in [0, 1]^dim using Sobol sampling.
+        return self.sobol.draw(n).double()
+
+    def _fit_model(self, X: torch.Tensor, y: torch.Tensor):
+        # X: (n, dim) double tensor in [0, 1]; y: (n,) double tensor of RAW minimization values
+        # Return (model, best_f_max) where larger target values are better
+        ...
+
+    def _next_point(self, model, best_f_max, X: torch.Tensor, y: torch.Tensor, step: int) -> torch.Tensor:
+        # Return tensor of shape (1, dim) in [0, 1]
+        ...
+
+    def __call__(self, func):
+        # Use self._initial_design(self.n_init), rescale [0, 1] -> [lb, ub] when calling func(x)
+        # Return (best_f, best_x) with float best_f and shape-(dim,) NumPy array best_x
+        ...
+```
+Design Freedom
+Keep _initial_design fixed as Sobol sampling and implement a coherent, lightweight BO strategy for _fit_model, _next_point, and __call__. Vary your design across generations—for example:
+
+Kernels & transforms: Matérn / RBF / ARD kernels, log or rank/quantile target transforms, trust regions, or periodic restarts on stagnation.
+Acquisition strategy: qLogExpectedImprovement, qUpperConfidenceBound (with decaying or adaptive beta), qNoisyExpectedImprovement, portfolio/alternating acquisitions, or local + global candidate generation.
+API & Shape Rules (Strictly Enforced)
+Allowed libraries only: numpy, torch, botorch, gpytorch, and optionally scipy. No external BO libraries or silent fallback to random search.
+Use dtype=torch.double (float64) for BoTorch tensors.
+Keep _initial_design as Sobol sampling in [0, 1]^dim. Keep X as (n, dim), train_Y as (n, 1), and raw y as (n,). Unnormalize [0, 1] candidates to [lb, ub] before calling func(x).
+BoTorch MAXIMIZES: negate/transform minimization targets so higher values are better, and pass best_f_max in that same maximization scale.
+Valid imports & kwargs only:
+Use from botorch.fit import fit_gpytorch_mll and fit_gpytorch_mll(mll) (NEVER fit_gpytorch_model).
+If using a custom PyTorch/GPyTorch training loop, reduce loss to a scalar (.sum() or .mean()) before .backward().
+Pass custom kernels to SingleTaskGP via covar_module=... (NEVER kernel=...).
+Keep num_restarts <= 5 and raw_samples <= 64 in optimize_acqf.
+
+Format your response strictly as:
+Description: 
+Code:
+```python
+<complete executable Python code>
+```
+"""

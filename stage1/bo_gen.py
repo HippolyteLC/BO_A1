@@ -31,9 +31,9 @@ PROBLEM = "bbob"
 
 if __name__=="__main__":
     role_prompt = textwrap.dedent(ENGINEERED_ROLE_PROMPT)
-    task_prompt = textwrap.dedent(NEW_PROMPT_1)
+    task_prompt = textwrap.dedent(BO_STUB_TASK_PROMPT)
 
-    evaluator = Evaluator(config, PROBLEM, testing=False)
+    evaluator = Evaluator(config, PROBLEM, testing=True)
 
     es = LLaMEA(
         f=evaluator,
@@ -44,7 +44,7 @@ if __name__=="__main__":
         task_prompt=task_prompt,
         experiment_name="bo-gen-test",
         elitism=True, # this promotes local optima (1+1)
-        budget=config.llamea_budget  
+        budget=10  
     )
 
     best_solution = es.run()
