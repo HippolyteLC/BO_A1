@@ -27,14 +27,15 @@ silence_warnings()
 
 config = ExperimentConfig()
 
-PROBLEM = "bbob"
+PROBLEM = "real"
 
 if __name__=="__main__":
     role_prompt = textwrap.dedent(ENGINEERED_ROLE_PROMPT)
     task_prompt = textwrap.dedent(BO_STUB_TASK_PROMPT_1)
 
-    evaluator = Evaluator(config, PROBLEM, testing=True)
-
+    # for problem in {"real"}
+    evaluator = Evaluator(config, PROBLEM, testing=False)
+    
     es = LLaMEA(
         f=evaluator,
         llm=ModelConfig().llm,
@@ -44,7 +45,7 @@ if __name__=="__main__":
         task_prompt=task_prompt,
         experiment_name="bo-gen-test",
         elitism=True, # this promotes local optima (1+1)
-        budget=20  
+        budget=config.llamea_budget,
     )
 
     best_solution = es.run()
