@@ -17,7 +17,8 @@ from benchmarks.bbob import BBOBFunction
 from benchmarks.practical_problem import PracticalProblem
 from config.config import ExperimentConfig
 
-
+from algorithms.bbob_try_16_Optimize_with_BO import BBOB_Optimize_with_BO
+from algorithms.real_try_60_Optimize_with_BO import Real_Optimize_with_BO
 
 # -------------------  SETTINGS   ---------------------------------
  
@@ -25,9 +26,11 @@ ALGORITHMS = {
     "random_search": RandomSearch,
     "cmaes": CMAES,
     "botorch_bo": BoTorchBO,
+    "real_llamea_bo": Real_Optimize_with_BO, 
+    "bbob_llamea_bo": BBOB_Optimize_with_BO, 
 }
  
-ALGORITHMS_TO_RUN = ["random_search", "cmaes", "botorch_bo"]
+ALGORITHMS_TO_RUN = ["random_search", "cmaes", "botorch_bo", "real_llamea_bo", "bbob_llamea_bo"]
 PROBLEMS_TO_RUN = ["bbob", "real"]
  
 config = ExperimentConfig()
@@ -120,7 +123,43 @@ def run_once(algorithm_class, problem_name, seed):
         errors.append(value - f_opt)
  
     return curve, errors, func.n_evals, f_opt
- 
+
+# ---------------Smoke test--------------------------------------------------
+# ------------------- SMOKE TEST --------------------------------
+
+def smoke_test():
+    print("\n========== SMOKE TEST ==========")
+
+    test_budget = 10
+
+    for algorithm_name, algorithm_class in ALGORITHMS.items():
+        for problem_name in PROBLEMS_TO_RUN:
+            print(f"Testing {algorithm_name} on {problem_name}...")
+
+            problem, f_opt = make_problem(problem_name)
+            set_all_seeds(42)
+
+            func = CountedFunction(problem, test_budget)
+
+            algorithm = algorithm_class(
+                budget=test_budget,
+                dim=config.dimension,
+                initial_points=config.initial_points,
+                random_seed=42,
+            )
+
+            try:
+                algorithm(func)
+            except BudgetExceeded:
+                pass
+
+            assert func.n_evals > 0, "No evaluations performed!"
+            assert func.n_evals <= test_budget, "Budget exceeded!"
+            assert np.isfinite(func.best), "Invalid objective value!"
+
+            print(f"  OK | evaluations: {func.n_evals} | best: {func.best:.4f}")
+
+    print("\n========== ALL TESTS PASSED ==========\n")
  
 # ---------------ALL SEEDS for one algorithm on one problem------------------
 
@@ -168,6 +207,7 @@ def run_all_seeds(algorithm_name, problem_name):
 
  
 if __name__ == "__main__":
+    smoke_test()
     for algorithm_name in ALGORITHMS_TO_RUN:
         for problem_name in PROBLEMS_TO_RUN:
             print("===", algorithm_name, "on", problem_name, "| budget", BUDGET, "===")

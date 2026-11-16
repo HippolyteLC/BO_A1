@@ -15,6 +15,7 @@ from botorch.models.transforms import Normalize, Standardize
 from botorch.optim import optimize_acqf
 from gpytorch.mlls import ExactMarginalLogLikelihood
 from scipy.stats import qmc
+from torch.quasirandom import SobolEngine
 
 
  
@@ -31,10 +32,14 @@ class BoTorchBO:
  
     def initial_design(self):
         # spreads the points evenly over the search space
-        sampler = qmc.LatinHypercube(d=self.dim, seed=self.random_seed)
-        points_01 = sampler.random(n=self.initial_points)            # points in [0, 1]^dim
-        return points_01 * (self.ub - self.lb) + self.lb             # scaled to [-5, 5]^dim
- 
+        # sampler = qmc.LatinHypercube(d=self.dim, seed=self.random_seed)
+        # points_01 = sampler.random(n=self.initial_points)            # points in [0, 1]^dim
+        # # return points_01 * (self.ub - self.lb) + self.lb             # scaled to [-5, 5]^dim
+
+        sobol_engine = SobolEngine(dimension=self.dim, scramble=True, seed=self.random_seed)
+        X_init = sobol_engine.draw(self.n_init).numpy()
+        X_scaled = self.lb + X_init * (self.ub - self.lb)
+        return X_scaled
     # ----- surrogate model -----
  
     def fit_gp(self, X, y):

@@ -1,6 +1,8 @@
 import cma
 import numpy as np
 
+from torch.quasirandom import SobolEngine
+
 
 class CMAES:
     def __init__(self, budget, dim, initial_points, random_seed):
@@ -33,9 +35,13 @@ class CMAES:
  
     def initial_design(self):
      # randomly throw 10 points
-        for _ in range(self.initial_points):
-            self.evaluate(self.random_point())
- 
+        # for _ in range(self.initial_points):
+        #     self.evaluate(self.random_point())
+        sobol_engine = SobolEngine(dimension=self.dim, scramble=True, seed=self.random_seed)
+        X_init = sobol_engine.draw(self.n_init).numpy()
+        X_scaled = self.lb + X_init * (self.ub - self.lb)
+        return X_scaled
+    
     def run_one_cmaes(self, start_point, popsize, seed):
         # Run CMA-ES from start_point until it converges or the budget is used up
         options = {
