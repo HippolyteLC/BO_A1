@@ -26,11 +26,11 @@ ALGORITHMS = {
     "random_search": RandomSearch,
     "cmaes": CMAES,
     "botorch_bo": BoTorchBO,
-    "real_llamea_bo": Real_Optimize_with_BO, 
-    "bbob_llamea_bo": BBOB_Optimize_with_BO, 
+    "llamea_real": Real_Optimize_with_BO, 
+    "llamea_bbob": BBOB_Optimize_with_BO, 
 }
  
-ALGORITHMS_TO_RUN = ["random_search", "cmaes", "botorch_bo", "real_llamea_bo", "bbob_llamea_bo"]
+ALGORITHMS_TO_RUN = ["random_search", "cmaes", "botorch_bo", "llamea_real", "llamea_bbob"]
 PROBLEMS_TO_RUN = ["bbob", "real"]
  
 config = ExperimentConfig()
