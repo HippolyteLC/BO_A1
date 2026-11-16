@@ -2,23 +2,13 @@
 
 from llamea import LLaMEA
 
-from benchmarks.practical_problem import PracticalProblem
-from benchmarks.bbob import BBOBFunction
-
 from stage1.utils import silence_warnings
-
-from ioh import logger, get_problem
 
 from config.config import ExperimentConfig, ModelConfig
 
 from stage1.prompts.exp_prompts import *
 
-
-import re
 import textwrap
-import os
-import math
-import numpy as np
 
 from stage1.evaluator import Evaluator
 
