@@ -30,9 +30,9 @@ config = ExperimentConfig()
 
 if __name__=="__main__":
     role_prompt = textwrap.dedent(ENGINEERED_ROLE_PROMPT)
-    task_prompt = textwrap.dedent(BO_STUB_TASK_PROMPT_1)
+    task_prompt = textwrap.dedent(BO_STUB_TASK_PROMPT_2)
 
-    for problem in {"real", "bbob"}:
+    for problem in ["real", "bbob"]:
         evaluator = Evaluator(config, problem, testing=False)
         
         es = LLaMEA(
@@ -42,7 +42,7 @@ if __name__=="__main__":
             n_offspring=5,
             role_prompt=role_prompt,
             task_prompt=task_prompt,
-            experiment_name="bo-gen-test",
+            experiment_name=f"{problem.capitalize()}",
             elitism=True, # this promotes local optima (1+1)
             budget=config.llamea_budget,
         )
