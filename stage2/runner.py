@@ -1,3 +1,4 @@
+# Run with: python -m stage2.runner
 # Stage 2: let every algorithm run on both problems, 10 seeds each, and save the results
 
 import json
