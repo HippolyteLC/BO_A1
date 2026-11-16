@@ -33,24 +33,24 @@ if __name__=="__main__":
     role_prompt = textwrap.dedent(ENGINEERED_ROLE_PROMPT)
     task_prompt = textwrap.dedent(BO_STUB_TASK_PROMPT_1)
 
-    # for problem in {"real"}
-    evaluator = Evaluator(config, PROBLEM, testing=False)
-    
-    es = LLaMEA(
-        f=evaluator,
-        llm=ModelConfig().llm,
-        n_parents=2,
-        n_offspring=5,
-        role_prompt=role_prompt,
-        task_prompt=task_prompt,
-        experiment_name="bo-gen-test",
-        elitism=True, # this promotes local optima (1+1)
-        budget=config.llamea_budget,
-    )
+    for problem in {"real", "bbob"}:
+        evaluator = Evaluator(config, PROBLEM, testing=False)
+        
+        es = LLaMEA(
+            f=evaluator,
+            llm=ModelConfig().llm,
+            n_parents=2,
+            n_offspring=5,
+            role_prompt=role_prompt,
+            task_prompt=task_prompt,
+            experiment_name="bo-gen-test",
+            elitism=True, # this promotes local optima (1+1)
+            budget=config.llamea_budget,
+        )
 
-    best_solution = es.run()
-    print(f"Best found solution: {best_solution.name}, Score={best_solution.fitness:.4f}")
-    print(f"Generated code:\n{best_solution.code}")
-    print(f"Additional feedback: {best_solution.feedback}")
+        best_solution = es.run()
+        print(f"Best found solution: {best_solution.name}, Score={best_solution.fitness:.4f}")
+        # print(f"Generated code:\n{best_solution.code}")
+        print(f"Additional feedback: {best_solution.feedback}")
 
 
