@@ -11,7 +11,7 @@ from ioh import logger, get_problem
 
 from config.config import ExperimentConfig, ModelConfig
 
-from stage1.prompts import *
+from stage1.prompts.exp_prompts import *
 
 
 import re
