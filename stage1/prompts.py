@@ -883,7 +883,21 @@ Implement a class `Optimize_with_BO` with the following signature and behavior:
 
      - `qLogExpectedImprovement` or `qUpperConfidenceBound` with decaying exploration weight `beta`, paired with `optimize_acqf` or local trust-region refinement when improvement stalls.
 
+6. **Explicit Imports & Defined Symbols**:
 
+     - Always import `MaternKernel` from `gpytorch.kernels` (`from gpytorch.kernels import MaternKernel`) whenever referenced.
+     
+     - Import `qLogExpectedImprovement` directly from `botorch.acquisition` (`from botorch.acquisition import qLogExpectedImprovement`), NOT from `botorch.acquisition.monte_carlo`.
+     
+     - Ensure every class, function, and module used anywhere in the code is explicitly imported at the top of the file—never rely on implicit or assumed imports.
+
+7. **Acquisition & Fallback Safety**:
+
+     - Do not pass `beta=...` to `qLogExpectedImprovement` unless verified for your installed BoTorch version (standard `qLogExpectedImprovement` takes `(model, best_f=...)`).
+     
+     - Inside `try/except` blocks for GP fitting or `optimize_acqf`, fall back to a valid candidate/point and continue the optimization loop rather than returning `(float('inf'), ...)` early.
+     
+     - Update GP training data cleanly (e.g., via `model.set_train_data(...)` or re-instantiating `SingleTaskGP` on the full `X` and `train_Y` tensors) with consistent tensor shapes and `dtype=torch.float64`.
 
 ### Evolutionary Refinement Instruction (Use When Mutating/Improving a Parent Candidate)
 

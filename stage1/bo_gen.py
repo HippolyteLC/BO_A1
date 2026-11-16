@@ -27,14 +27,13 @@ silence_warnings()
 
 config = ExperimentConfig()
 
-PROBLEM = "real"
 
 if __name__=="__main__":
     role_prompt = textwrap.dedent(ENGINEERED_ROLE_PROMPT)
     task_prompt = textwrap.dedent(BO_STUB_TASK_PROMPT_1)
 
     for problem in {"real", "bbob"}:
-        evaluator = Evaluator(config, PROBLEM, testing=False)
+        evaluator = Evaluator(config, problem, testing=False)
         
         es = LLaMEA(
             f=evaluator,
