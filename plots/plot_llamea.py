@@ -17,8 +17,8 @@ from plots.style import clean_axes
 # ----------------------------SETTINGS: one entry per LLaMEA run-------------------------
 
 LLAMEA_RUNS = [
-    (r"llamea_logs\BO_STUB_TASK_PROMPT_1\exp-11-16_113135-LLaMEA-qwen2.5-coder-14b-q4_latest-bo-gen-test\log.jsonl", "evolved on f15"), # bbob run
-    (r"llamea_logs\BO_STUB_TASK_PROMPT_1\exp-11-16_084035-LLaMEA-qwen2.5-coder-14b-q4_latest-bo-gen-test\log.jsonl", "evolved on 1124"), # real run
+    (r"llamea_logs\BO_STUB_TASK_PROMPT_1\exp-11-16_113135-LLaMEA-qwen2.5-coder-14b-q4_latest-bo-gen-test\log.jsonl", "evolved on 1124"), # bbob run
+    (r"llamea_logs\BO_STUB_TASK_PROMPT_1\exp-11-16_084035-LLaMEA-qwen2.5-coder-14b-q4_latest-bo-gen-test\log.jsonl", "evolved on f15"), # real run
 ]
 
 OUT_DIR = "plots/output"
