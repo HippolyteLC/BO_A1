@@ -1,3 +1,9 @@
+# ____________________________________________________________________________
+# Below AOCC (logging) code is from the llamea github: 
+# https://github.com/XAI-liacs/LLaMEA/tree/main/misc/utils.py
+# ____________________________________________________________________________
+# This file contains helper functions for AOCC, warnings, logging, error formatting for LLM feedback
+
 import numpy as np
 import re
 
@@ -13,6 +19,8 @@ from ioh.iohcpp.logger import AbstractLogger
 import os
 import logging
 import warnings
+import traceback
+
 
 def silence_warnings():
     # NumExpr configuration
@@ -29,6 +37,26 @@ def silence_warnings():
         message=r"Optimization failed in `gen_candidates_scipy`.*",
         category=RuntimeWarning
     )
+
+
+
+def format_error(e, max_lines=15):
+    tb = traceback.format_exception(type(e), e, e.__traceback__)
+
+    tb = "".join(tb).strip()
+    lines = tb.splitlines()
+
+    if len(lines) > max_lines:
+        tb = "...\n" + "\n".join(lines[-max_lines:])
+
+    return f"""
+EXECUTION ERROR:
+Type: {type(e).__name__}
+Message: {str(e)}
+
+TRACEBACK:
+{tb}
+"""
 
 
 def convert_aucs(aucs):

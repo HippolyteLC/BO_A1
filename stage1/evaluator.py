@@ -1,39 +1,12 @@
-
-from benchmarks.practical_problem import PracticalProblem
-from benchmarks.bbob import BBOBFunction
-
 from stage1.utils import aoc_logger, correct_aoc, OverBudgetException, convert_aucs
 
-from ioh import logger, get_problem
-
-from config.config import ExperimentConfig, ModelConfig
-
-from stage1.prompts import VANILLA_ROLE_PROMPT, VANILLA_TASK_PROMPT, ENGINEERED_ROLE_PROMPT, ENGINEERED_TASK_PROMPT
-
-import traceback
+from ioh import logger
 
 import numpy as np
 
 from stage2.runner import make_problem
 
-
-def format_error(e, max_lines=15):
-    tb = traceback.format_exception(type(e), e, e.__traceback__)
-
-    tb = "".join(tb).strip()
-    lines = tb.splitlines()
-
-    if len(lines) > max_lines:
-        tb = "...\n" + "\n".join(lines[-max_lines:])
-
-    return f"""
-EXECUTION ERROR:
-Type: {type(e).__name__}
-Message: {str(e)}
-
-TRACEBACK:
-{tb}
-"""
+from stage1.utils import format_error
 
 
 class Evaluator:
