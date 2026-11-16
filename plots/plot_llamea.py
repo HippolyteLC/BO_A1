@@ -1,3 +1,4 @@
+# Run with python -m plots.plot_llamea
 # Stage 1 plot: how the LLaMEA search improved over time
 # Dots: the fitness (mean AOCC over 10 seeds) of every generated candidate
 # Line: the best fitness found so far
@@ -16,8 +17,8 @@ from plots.style import clean_axes
 # ----------------------------SETTINGS: one entry per LLaMEA run-------------------------
 
 LLAMEA_RUNS = [
-    ("path/to/bbob_run/log.jsonl", "evolved on f15"),
-    ("path/to/real_run/log.jsonl", "evolved on 1124"),
+    (r"llamea_logs\BO_STUB_TASK_PROMPT_1\exp-11-16_113135-LLaMEA-qwen2.5-coder-14b-q4_latest-bo-gen-test\log.jsonl", "evolved on f15"), # bbob run
+    (r"llamea_logs\BO_STUB_TASK_PROMPT_1\exp-11-16_084035-LLaMEA-qwen2.5-coder-14b-q4_latest-bo-gen-test\log.jsonl", "evolved on 1124"), # real run
 ]
 
 OUT_DIR = "plots/output"
