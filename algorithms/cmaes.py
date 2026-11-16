@@ -38,9 +38,10 @@ class CMAES:
         # for _ in range(self.initial_points):
         #     self.evaluate(self.random_point())
         sobol_engine = SobolEngine(dimension=self.dim, scramble=True, seed=self.random_seed)
-        X_init = sobol_engine.draw(self.n_init).numpy()
+        X_init = sobol_engine.draw(self.initial_points).numpy()
         X_scaled = self.lb + X_init * (self.ub - self.lb)
-        return X_scaled
+        for point in X_scaled:
+            self.evaluate(point)
     
     def run_one_cmaes(self, start_point, popsize, seed):
         # Run CMA-ES from start_point until it converges or the budget is used up

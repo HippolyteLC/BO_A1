@@ -37,7 +37,7 @@ class BoTorchBO:
         # # return points_01 * (self.ub - self.lb) + self.lb             # scaled to [-5, 5]^dim
 
         sobol_engine = SobolEngine(dimension=self.dim, scramble=True, seed=self.random_seed)
-        X_init = sobol_engine.draw(self.n_init).numpy()
+        X_init = sobol_engine.draw(self.initial_points).numpy()
         X_scaled = self.lb + X_init * (self.ub - self.lb)
         return X_scaled
     # ----- surrogate model -----
