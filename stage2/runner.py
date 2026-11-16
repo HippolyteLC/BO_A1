@@ -17,8 +17,8 @@ from benchmarks.bbob import BBOBFunction
 from benchmarks.practical_problem import PracticalProblem
 from config.config import ExperimentConfig
 
-from algorithms.bbob_try_16_Optimize_with_BO import BBOB_Optimize_with_BO
-from algorithms.real_try_60_Optimize_with_BO import Real_Optimize_with_BO
+from algorithms.real_try_16_Optimize_with_BO import Real_Optimize_with_BO
+from algorithms.bbob_try_60_Optimize_with_BO import BBOB_Optimize_with_BO
 
 # -------------------  SETTINGS   ---------------------------------
  

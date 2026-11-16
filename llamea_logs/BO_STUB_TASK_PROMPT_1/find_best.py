@@ -1,3 +1,4 @@
+# run with python -m llamea_logs/BO_STUB_TASK_PROMPT_1/find_best
 
 import json
 from pathlib import Path
