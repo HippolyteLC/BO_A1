@@ -32,13 +32,13 @@ if __name__=="__main__":
         es = LLaMEA(
             f=evaluator,
             llm=ModelConfig().llm,
-            n_parents=1,
-            n_offspring=1,
+            n_parents=2,
+            n_offspring=5,
             role_prompt=role_prompt,
             task_prompt=task_prompt,
             experiment_name=f"{problem.capitalize()}",
             elitism=True, # this promotes local optima (2+5)
-            budget=1,
+            budget=config.llamea_budget,
         )
 
         best_solution = es.run()
@@ -46,13 +46,20 @@ if __name__=="__main__":
         # print(f"Generated code:\n{best_solution.code}")
         print(f"Additional feedback: {best_solution.feedback}")
 
-        # Save the best-found algorithm
+        # Save the best-found algorithm only if its code is valid
         output_dir = Path("algorithms") / task_prompt_name
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        output_file = output_dir / f"TEST_{problem}_Optimize_with_BO.py"
-        output_file.write_text(best_solution.code, encoding="utf-8")
+        output_file = output_dir / f"{problem}_Optimize_with_BO.py"
 
-        print(f"Best algorithm saved to: {output_file}")
+        try:
+            compile(best_solution.code, str(output_file), "exec")
+
+            output_file.write_text(best_solution.code, encoding="utf-8")
+            print(f"Best algorithm saved to: {output_file}")
+
+        except SyntaxError as e:
+            print(f"Invalid Python code. Algorithm not saved.")
+            print(f"Syntax error: {e}")
 
 
