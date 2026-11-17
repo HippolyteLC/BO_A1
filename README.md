@@ -102,14 +102,21 @@ This repository contains the full pipeline for (1) using [LLaMEA](https://github
 
 ```bash
 # 1. Install the uv package manager
-curl -LsSf https://astral.sh/uv/install.sh | sh                                    # Linux / macOS
-# powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"  # Windows
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 2. Create and activate the environment (from the repository root)
-uv venv .venv --python python3.11
+# 2. Create a virtual environment (from the repository root)
+uv venv .venv --python 3.11
+
+# 3. Activate the environment
 source .venv/bin/activate
+
+# 4. Upgrade pip
 uv pip install --upgrade pip
+
+# 5. Install project dependencies
 uv pip install -r requirements.txt
+
+# 6. Install Practical_Problems directly from GitHub
 uv pip install "git+https://github.com/BayesOptApp/Practical_Problems.git"
 ```
 
