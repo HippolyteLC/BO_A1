@@ -108,7 +108,9 @@ curl -LsSf https://astral.sh/uv/install.sh | sh                                 
 # 2. Create and activate the environment (from the repository root)
 uv venv .venv --python python3.11
 source .venv/bin/activate
+uv pip install --upgrade pip
 uv pip install -r requirements.txt
+uv pip install "git+https://github.com/BayesOptApp/Practical_Problems.git"
 ```
 
 ---
