@@ -407,7 +407,8 @@ The generated code is reported **unmodified**. The following behaviors were iden
   <figcaption>Figure 1: Incumbent error on practical problem 1124, Frequency Modulated Sound Waves, for all algorithms.  </figcaption>
 </figure>
 
-markdown
+
+
 
 | Problem | Algorithm | N Seeds | Final Error Mean | Final Error SE | Final Error Median |
 |---|---|---:|---:|---:|---:|
