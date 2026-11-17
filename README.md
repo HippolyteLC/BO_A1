@@ -399,16 +399,17 @@ The generated code is reported **unmodified**. The following behaviors were iden
 
 <figure>
   <img src="plots/output/convergence_bbob.png" alt="Alt text describing the image" width="500">
-  <figcaption>Figure 1: Incumbent error on f15 rastrigin for all algorithms. </figcaption>
+  <figcaption>Figure 2: Incumbent error on f15 rastrigin for all algorithms. </figcaption>
 </figure>
 
 <figure>
   <img src="plots/output/convergence_real.png" alt="Alt text describing the image" width="500">
-  <figcaption>Figure 1: Incumbent error on practical problem 1124, Frequency Modulated Sound Waves, for all algorithms.  </figcaption>
+  <figcaption>Figure 3: Incumbent error on practical problem 1124, Frequency Modulated Sound Waves, for all algorithms.  </figcaption>
 </figure>
 
 
 
+Final evaluation results for all algorithms on bbob and real problems. Error mean, median and standard error are reported for all runs and aggregated on the 10 seeds.  
 
 | Problem | Algorithm | N Seeds | Final Error Mean | Final Error SE | Final Error Median |
 |---|---|---:|---:|---:|---:|
@@ -417,6 +418,7 @@ The generated code is reported **unmodified**. The following behaviors were iden
 | bbob | llamea_bbob | 10 | 111.1595 | 27.9567 | 94.9641 |
 | bbob | llamea_real | 10 | 50.0772 | 8.8104 | 41.7768 |
 | bbob | random_search | 10 | 69.0795 | 6.2579 | 68.9464 |
+|---|---|---:|---:|---:|---:|
 | real | botorch_bo | 10 | 2.1541 | 0.0831 | 2.1371 |
 | real | cmaes | 10 | 1.9725 | 0.1459 | 1.9463 |
 | real | llamea_bbob | 10 | 55.1481 | 22.9556 | 7.3285 |
