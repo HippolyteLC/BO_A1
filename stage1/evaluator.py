@@ -1,3 +1,8 @@
+# ____________________________________________________________________________
+# Below Evaluator class code is adapted from the llamea github: 
+# https://github.com/XAI-liacs/LLaMEA/tree/main/examples/
+# ____________________________________________________________________________
+
 from stage1.utils import aoc_logger, correct_aoc, OverBudgetException, convert_aucs
 
 from ioh import logger

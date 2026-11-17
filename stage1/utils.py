@@ -1,5 +1,5 @@
 # ____________________________________________________________________________
-# Below AOCC (logging) code is from the llamea github: 
+# Below AOCC (logging) code is adapted from the llamea github: 
 # https://github.com/XAI-liacs/LLaMEA/tree/main/misc/utils.py
 # ____________________________________________________________________________
 # This file contains helper functions for AOCC, warnings, logging, error formatting for LLM feedback

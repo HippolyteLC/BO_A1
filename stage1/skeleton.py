@@ -1,4 +1,6 @@
-# Skeleton code examples for the llamea prompt
+# Skeleton code examples for the llamea prompt: BO_SKELETON_TASK_PROMPT
+# Can paste any skeleton example used in a prompt into this file 
+# and run test.py to verify if the skeleton works. 
 
 import numpy as np
 import torch

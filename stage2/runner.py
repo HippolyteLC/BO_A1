@@ -23,6 +23,7 @@ import importlib
  
 config = ExperimentConfig()
 
+# Get algorithms from the correct folder based on task prompt.
 real_mod = importlib.import_module(f"algorithms.{config.task_prompt_name}.real_Optimize_with_BO")
 bbob_mod = importlib.import_module(f"algorithms.{config.task_prompt_name}.bbob_Optimize_with_BO")
 
