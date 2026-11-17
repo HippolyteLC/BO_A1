@@ -9,7 +9,7 @@ from botorch.utils.transforms import unnormalize
 from gpytorch.kernels import MaternKernel
 from gpytorch.mlls import ExactMarginalLogLikelihood
 
-class BBOB_Optimize_with_BO:
+class Optimize_with_BO:
     def __init__(self, budget: int, dim: int, initial_points: int, random_seed: int):
         self.budget = budget
         self.dim = dim

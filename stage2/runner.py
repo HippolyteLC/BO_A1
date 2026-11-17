@@ -31,8 +31,8 @@ ALGORITHMS = {
     "random_search": RandomSearch,
     "cmaes": CMAES,
     "botorch_bo": BoTorchBO,
-    "llamea_real": real_mod.Real_Optimize_with_BO, 
-    "llamea_bbob": bbob_mod.BBOB_Optimize_with_BO, 
+    "llamea_real": real_mod.Optimize_with_BO, 
+    "llamea_bbob": bbob_mod.Optimize_with_BO, 
 }
  
 ALGORITHMS_TO_RUN = ["random_search", "cmaes", "botorch_bo", "llamea_real", "llamea_bbob"]
