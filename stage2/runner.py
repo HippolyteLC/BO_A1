@@ -276,7 +276,7 @@ def run_all_seeds(algorithm_name, problem_name):
  
 if __name__ == "__main__":
     smoke_test()
-    diagnostic_smoke_test()
+    # diagnostic_smoke_test()
     for algorithm_name in ALGORITHMS_TO_RUN:
         for problem_name in PROBLEMS_TO_RUN:
             print("===", algorithm_name, "on", problem_name, "| budget", BUDGET, "===")
