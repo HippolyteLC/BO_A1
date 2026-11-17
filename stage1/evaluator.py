@@ -10,7 +10,7 @@ from stage1.utils import format_error
 
 
 class Evaluator:
-    def __init__(self, config, problem, testing=True, verbose=False):
+    def __init__(self, config, problem, testing=False, verbose=False):
         self.config = config
         self.problem = problem
         self.testing = testing

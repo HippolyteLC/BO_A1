@@ -4,7 +4,6 @@
 
 This repository contains the full pipeline for (1) using [LLaMEA](https://github.com/XAI-liacs/LLaMEA) to generate Bayesian Optimization (BO) algorithms on one COCO-BBOB function and one real-world problem, and (2) benchmarking the generated algorithms against CMA-ES and a BoTorch BO baseline to study generalization.
 
-> **Status note:** Items marked `[TODO: ...]` are the only remaining placeholders and must be completed before submission.
 
 ## Contents
 
@@ -385,10 +384,10 @@ The generated code is reported **unmodified**. The following behaviors were iden
 | Artifact | Path | Description |
 | :--- | :--- | :--- |
 | **Stage 1 generation logs** | `llamea_logs/BO_STUB_TASK_PROMPT_1/` | Prompts, LLM responses, generated code, iteration numbers, AOCC history |
-| **Stage 2 raw results** | `results/stage2/first_results/` | Per-seed objective trajectories and summaries for every method and problem |
+| **Stage 2 raw results** | `results/stage2/` | Per-seed objective trajectories and summaries for every method and problem |
 | **LLaMEA AOCC plot** | `plots/output/llamea_aocc.pdf` | Outer-loop AOCC progression over candidate evaluations |
-| **BBOB convergence plot** | `plots/output/convergence_bbob.pdf` | Incumbent error vs. evaluations on `f15` (mean ± variability over 10 runs) |
-| **Real-world convergence plot** | `plots/output/convergence_real.pdf` | Best objective vs. evaluations on problem `1124` (mean ± variability over 10 runs) |
+| **BBOB convergence plot** | `plots/output/convergence_bbob.pdf` | Incumbent error vs. evaluations on `f15` (mean ± standard error over 10 runs) |
+| **Real-world convergence plot** | `plots/output/convergence_real.pdf` | Incumbent error vs. evaluations on problem `1124` (mean ± standard error over 10 runs) |
 
 ### 8.2 Summary of Findings
 
