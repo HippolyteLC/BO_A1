@@ -374,6 +374,7 @@ The generated code is reported **unmodified**. The following behaviors were iden
 | 5 | `Real_…` | The unit-cube candidate is passed to `func` **without** mapping back to `[lb, ub]`. | BO-proposed points are evaluated inside `[0,1]^d` only. |
 | 6 | `Real_…` | The incumbent is updated before the check `y_candidate >= best_f`, so the condition is always true. | A perturbation evaluation happens at **every** iteration. |
 | 7 | `Real_…` | The perturbation evaluation is not counted in `n_evals`. | Each iteration consumes two evaluations but increments the counter once; the harness truncates the run at the budget. |
+| 8 | Both | The GP is updated with `model.set_train_data(X, Y, strict=False)` where `Y` has shape `(n, 1)`, while `SingleTaskGP` stores its training targets as `(n,)`. Every later posterior call fails with *"Flattening the training labels failed"*, and the error is caught by the `try/except` fallback that the prompt asks for (rule 4). | **The GP is not used after the first BO iteration.** For `Real_…` the acquisition step failed in every one of the 25 BO iterations of a 60-evaluation run (seed 120; each iteration uses two evaluations), so the search is in practice Sobol sampling plus a Gaussian perturbation of the incumbent. For `BBOB_…` in the 60-evaluation Stage 1 setting, the L-BFGS-B refinement uses up the remaining budget after the first iteration, so the GP is only queried once more. |
 
 ---
 
