@@ -420,7 +420,6 @@ Final evaluation results for all algorithms on bbob and real problems. Error mea
 | bbob | llamea_bbob | 10 | 111.1595 | 27.9567 | 94.9641 |
 | bbob | llamea_real | 10 | 50.0772 | 8.8104 | 41.7768 |
 | bbob | random_search | 10 | 69.0795 | 6.2579 | 68.9464 |
-|---|---|---:|---:|---:|---:|
 | real | botorch_bo | 10 | 2.1541 | 0.0831 | 2.1371 |
 | real | cmaes | 10 | 1.9725 | 0.1459 | 1.9463 |
 | real | llamea_bbob | 10 | 55.1481 | 22.9556 | 7.3285 |
