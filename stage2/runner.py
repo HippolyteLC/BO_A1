@@ -18,8 +18,8 @@ from benchmarks.practical_problem import PracticalProblem
 from config.config import ExperimentConfig
 
 # change the prompt relative folder to select different llamea output algorithms. 
-from algorithms.BO_STUB_TASK_PROMPT_2.real_Optimize_with_BO import Real_Optimize_with_BO
-from algorithms.BO_STUB_TASK_PROMPT_2.bbob_Optimize_with_BO import BBOB_Optimize_with_BO
+from algorithms.BO_STUB_TASK_PROMPT_1.real_Optimize_with_BO import Real_Optimize_with_BO
+from algorithms.BO_STUB_TASK_PROMPT_1.bbob_Optimize_with_BO import BBOB_Optimize_with_BO
 
 import datetime as dt
 
@@ -268,16 +268,15 @@ def run_all_seeds(algorithm_name, problem_name):
             json.dump(result, f)
  
         print("saved:", path, "| final error =", round(errors[-1], 4), "|", round(seconds, 1), "s")
- 
- 
+
 
 # ----------   MAIN  ----------------
 
  
 if __name__ == "__main__":
-    smoke_test()
-    diagnostic_smoke_test()
-    # for algorithm_name in ALGORITHMS_TO_RUN:
-    #     for problem_name in PROBLEMS_TO_RUN:
-    #         print("===", algorithm_name, "on", problem_name, "| budget", BUDGET, "===")
-    #         run_all_seeds(algorithm_name, problem_name)
+    # smoke_test()
+    # diagnostic_smoke_test()
+    for algorithm_name in ALGORITHMS_TO_RUN:
+        for problem_name in PROBLEMS_TO_RUN:
+            print("===", algorithm_name, "on", problem_name, "| budget", BUDGET, "===")
+            run_all_seeds(algorithm_name, problem_name)
