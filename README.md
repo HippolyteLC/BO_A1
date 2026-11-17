@@ -58,19 +58,20 @@ This repository contains the full pipeline for (1) using [LLaMEA](https://github
 
 | Path / File | Role |
 | :--- | :--- |
-| `config/config.py` | `ExperimentConfig` (seeds, budgets, AOCC bounds) and `ModelConfig` (LLM settings) |
+| `config/config.py` | `ExperimentConfig` (seeds, budgets, AOCC bounds, LLaMEA task prompt) and `ModelConfig` (LLM settings) |
 | `stage1/bo_gen.py` | Stage 1 entry point: LLaMEA generation for both targets |
 | `stage1/evaluator.py` | Inner-loop evaluator: runs each candidate over all seeds and computes AOCC |
 | `stage1/utils.py` | AOCC logger, AOCC correction/aggregation, error formatting |
 | `stage1/model/client.py` | `OllamaWrapper` LLM client |
 | `stage1/prompts/exp_prompts.py` | Experimental role/task prompts (`prompts.py` holds earlier exploratory prompts) |
 | `stage2/runner.py` | Stage 2 entry point: problem construction and benchmarking of all methods |
-| `BBOB_Optimize_with_BO` (`bbob_Optimize_with_BO.py`) | Best algorithm generated on `f15` |
-| `Real_Optimize_with_BO` (`real_Optimize_with_BO.py`) | Best algorithm generated on problem `1124` |
+| `algorithms/BO_STUB_TASK_PROMPT_1/bbob_Optimize_with_BO.py` | `BBOB_Optimize_with_BO` Best algorithm generated on `f15` |
+| `algorithms/BO_STUB_TASK_PROMPT_1/real_Optimize_with_BO.py` | `Real_Optimize_with_BO` Best algorithm generated on problem `1124` |
 | `botorch_bo.py` | BoTorch BO baseline |
 | `cmaes.py` | CMA-ES baseline (`pycma`) |
 | `plots/plot_llamea.py`, `plots/plot_convergence.py` | Plotting scripts |
 | `llamea_logs/`, `results/`, `plots/output/` | Generation logs, raw results, figures |
+| `llamea_logs/` | `llamea_real/` and  `llamea_bbob/` contain the llamea generation logs for `1124` and `f15` |
 
 ---
 
@@ -201,6 +202,7 @@ curl "http://localhost:11434/v1/models"
 | `experiment_evaluation_budget` | `600` | Stage 2 evaluations (`100d`) |
 | `lower`, `upper` | `1e-2`, `1e3` | Objective range used by the AOCC logger; found through trials with random search.  on both poroblems. |
 | `fall_back` | `0` | Score assigned to candidates that crash or are invalid |
+| `task_prompt_name` | `"BO_STUB_TASK_PROMPT_1"` | Define which task prompt stage 1 uses. This defines the subfolder in which final generated algorithms are stored, subfolder where the llamea generation logs are stored, and the import of said algorithms in evaluation at stage 2 | 
 
 ### 5.3 Prompt Strategies
 
@@ -263,8 +265,8 @@ Run all commands from the **repository root**.
 
 | Step | Command | Output |
 | :--- | :--- | :--- |
-| **1. Stage 1: generation** (both targets) | `python -m stage1.bo_gen` | `llamea_logs/` |
-| **2. Stage 2: benchmarking**  The best found code is copied automatically into the matching prompt subfolder of `algorithms/`. Previous code is overwritten. | `python -m stage2.runner` | `results/stage2/` |
+| **1. Stage 1: generation** (both targets) | `python -m stage1.bo_gen` | `llamea_logs/[THE_CHOSEN_PROMPT]` |
+| **2. Stage 2: benchmarking**  The best found code is copied automatically into the matching prompt subfolder of `algorithms/[THE_CHOSEN_PROMPT]`. Previous code is overwritten. | `python -m stage2.runner` | `results/stage2/` |
 | **3a. LLaMEA AOCC convergence plot** | `python -m plots.plot_llamea` | `plots/output/llamea_aocc.pdf` |
 | **3b. Stage 2 convergence plots** | `python -m plots.plot_convergence` | `plots/output/convergence_*.pdf` |
 
@@ -384,7 +386,7 @@ The generated code is reported **unmodified**. The following behaviors were iden
 
 | Artifact | Path | Description |
 | :--- | :--- | :--- |
-| **Stage 1 generation logs** | `llamea_logs/BO_STUB_TASK_PROMPT_1/` | Prompts, LLM responses, generated code, iteration numbers, AOCC history |
+| **Stage 1 generation logs** | `llamea_logs/BO_STUB_TASK_PROMPT_1/["/real" or "/bbob"]` | Prompts, LLM responses, generated code, iteration numbers, AOCC history |
 | **Stage 2 raw results** | `results/stage2/` | Per-seed objective trajectories and summaries for every method and problem |
 | **LLaMEA AOCC plot** | `plots/output/llamea_aocc.pdf` | Outer-loop AOCC progression over candidate evaluations |
 | **BBOB convergence plot** | `plots/output/convergence_bbob.pdf` | Incumbent error vs. evaluations on `f15` (mean ± standard error over 10 runs) |
