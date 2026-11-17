@@ -264,7 +264,7 @@ Run all commands from the **repository root**.
 | Step | Command | Output |
 | :--- | :--- | :--- |
 | **1. Stage 1: generation** (both targets) | `python -m stage1.bo_gen` | `llamea_logs/` |
-| **2. Stage 2: benchmarking** (copy the selected algorithms into the matching prompt subfolder of `algorithms/` first) | `python -m stage2.runner` | `results/stage2/` |
+| **2. Stage 2: benchmarking**  The best found code is copied automatically into the matching prompt subfolder of `algorithms/`. Previous code is overwritten. | `python -m stage2.runner` | `results/stage2/` |
 | **3a. LLaMEA AOCC convergence plot** | `python -m plots.plot_llamea` | `plots/output/llamea_aocc.pdf` |
 | **3b. Stage 2 convergence plots** | `python -m plots.plot_convergence` | `plots/output/convergence_*.pdf` |
 
