@@ -1,3 +1,4 @@
 botorch==0.18.1
-ioh
-llamea
+ioh==0.3.22
+llamea==1.4.2
+cma==4.5.0
