@@ -20,6 +20,8 @@ class ExperimentConfig:
 
     fall_back: int = 0
 
+    task_prompt_name: str = "BO_STUB_TASK_PROMPT_1"
+
     def __post_init__(self):
         if not self.seeds:
             self.seeds = [10 * self.group_number + r for r in range(10)]

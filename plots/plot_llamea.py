@@ -13,16 +13,19 @@ import matplotlib.pyplot as plt
 
 from plots.style import clean_axes
 
+from config.config import ExperimentConfig
 
 # ----------------------------SETTINGS: one entry per LLaMEA run-------------------------
 
+LLAMEA_LOG_DIR = Path(f"llamea_logs/{ExperimentConfig().task_prompt_name}")
 
 # IMPORTANT: add correct logs paths
-LLAMEA_RUNS = [
-    (r"llamea_logs\BO_STUB_TASK_PROMPT_1\exp-11-16_113135-LLaMEA-qwen2.5-coder-14b-q4_latest-bo-gen-test\log.jsonl", "evolved on 1124"), # real run
-    (r"llamea_logs\BO_STUB_TASK_PROMPT_1\exp-11-16_084035-LLaMEA-qwen2.5-coder-14b-q4_latest-bo-gen-test\log.jsonl", "evolved on f15"), # bbob run
-]
 
+LLAMEA_RUNS = [
+    (LLAMEA_LOG_DIR / "llamea_real/log.jsonl", "evolved on 1124"), # real run
+    (LLAMEA_LOG_DIR / "llamea_bbob/log.jsonl", "evolved on f15"), # bbob run
+]
+print(LLAMEA_RUNS)
 OUT_DIR = "plots/output"
 COLORS = ["#2a78d6", "#eb6834"]   # same colors as the two LLaMEA algorithms in plots/style.py
 

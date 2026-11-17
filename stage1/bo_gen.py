@@ -23,11 +23,11 @@ config = ExperimentConfig()
 
 if __name__=="__main__":
     role_prompt = textwrap.dedent(ENGINEERED_ROLE_PROMPT)
-    task_prompt_name = "BO_STUB_TASK_PROMPT_1"
+    task_prompt_name = config.task_prompt_name
     task_prompt = textwrap.dedent(globals()[task_prompt_name])
 
     for problem in ["real", "bbob"]:
-        evaluator = Evaluator(config, problem, testing=True)
+        evaluator = Evaluator(config, problem, testing=False)
         
         es = LLaMEA(
             f=evaluator,
@@ -42,14 +42,22 @@ if __name__=="__main__":
         )
 
         best_solution = es.run()
+
+        try:
+            import shutil
+            log_dir = Path("llamea_logs")
+            log_dir.mkdir(exist_ok=True)
+            shutil.copytree(es.logger.dirname, log_dir / task_prompt_name / f"llamea_{problem}", dirs_exist_ok=True)
+        except Exception as e:
+            print(f"Could not copy LLaMEA logs: {e}")
+
         print(f"Best found solution: {best_solution.name}, Score={best_solution.fitness:.4f}")
         # print(f"Generated code:\n{best_solution.code}")
         print(f"Additional feedback: {best_solution.feedback}")
 
-        # Save the best-found algorithm only if its code is valid
+        # Save the best-found algorithm to `algorithms/` only if its code is valid
         output_dir = Path("algorithms") / task_prompt_name
         output_dir.mkdir(parents=True, exist_ok=True)
-
         output_file = output_dir / f"{problem}_Optimize_with_BO.py"
 
         try:

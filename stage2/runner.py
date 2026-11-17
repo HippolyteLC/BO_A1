@@ -17,30 +17,30 @@ from benchmarks.bbob import BBOBFunction
 from benchmarks.practical_problem import PracticalProblem
 from config.config import ExperimentConfig
 
-# change the prompt relative folder to select different llamea output algorithms. 
-from algorithms.BO_STUB_TASK_PROMPT_1.real_Optimize_with_BO import Real_Optimize_with_BO
-from algorithms.BO_STUB_TASK_PROMPT_1.bbob_Optimize_with_BO import BBOB_Optimize_with_BO
-
-import datetime as dt
+import importlib
 
 # -------------------  SETTINGS   ---------------------------------
  
+config = ExperimentConfig()
+
+real_mod = importlib.import_module(f"algorithms.{config.task_prompt_name}.real_Optimize_with_BO")
+bbob_mod = importlib.import_module(f"algorithms.{config.task_prompt_name}.bbob_Optimize_with_BO")
+
 ALGORITHMS = {
     "random_search": RandomSearch,
     "cmaes": CMAES,
     "botorch_bo": BoTorchBO,
-    "llamea_real": Real_Optimize_with_BO, 
-    "llamea_bbob": BBOB_Optimize_with_BO, 
+    "llamea_real": real_mod.Real_Optimize_with_BO, 
+    "llamea_bbob": bbob_mod.BBOB_Optimize_with_BO, 
 }
  
 ALGORITHMS_TO_RUN = ["random_search", "cmaes", "botorch_bo", "llamea_real", "llamea_bbob"]
 PROBLEMS_TO_RUN = ["bbob", "real"]
  
-config = ExperimentConfig()
 BUDGET = config.experiment_evaluation_budget   # 600
 # timestamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
 OUT_DIR = f"results/stage2"                     
- 
+
  
 # -----------------  BUDGET COUNTER   ---------------------------------------
  
@@ -274,9 +274,9 @@ def run_all_seeds(algorithm_name, problem_name):
 
  
 if __name__ == "__main__":
-    # smoke_test()
-    # diagnostic_smoke_test()
-    for algorithm_name in ALGORITHMS_TO_RUN:
-        for problem_name in PROBLEMS_TO_RUN:
-            print("===", algorithm_name, "on", problem_name, "| budget", BUDGET, "===")
-            run_all_seeds(algorithm_name, problem_name)
+    smoke_test()
+    diagnostic_smoke_test()
+    # for algorithm_name in ALGORITHMS_TO_RUN:
+    #     for problem_name in PROBLEMS_TO_RUN:
+    #         print("===", algorithm_name, "on", problem_name, "| budget", BUDGET, "===")
+    #         run_all_seeds(algorithm_name, problem_name)
