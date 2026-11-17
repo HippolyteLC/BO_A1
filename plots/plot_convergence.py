@@ -12,9 +12,11 @@ import numpy as np
 
 from plots.style import PROBLEM_TITLE, clean_axes, style_for
 
+import os
 
 # ---------------------------------SETTINGS------------------------------------------------------
 
+# IMPORTANT: update the folder
 RESULTS_DIR = "results/stage2"   # where stage2/runner.py saved the results
 OUT_DIR = "plots/output"         # where the figures are saved
 PROBLEMS = ["bbob", "real"]

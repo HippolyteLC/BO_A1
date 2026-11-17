@@ -17,8 +17,11 @@ from benchmarks.bbob import BBOBFunction
 from benchmarks.practical_problem import PracticalProblem
 from config.config import ExperimentConfig
 
-from algorithms.real_try_16_Optimize_with_BO import Real_Optimize_with_BO
-from algorithms.bbob_try_60_Optimize_with_BO import BBOB_Optimize_with_BO
+# change the prompt relative folder to select different llamea output algorithms. 
+from algorithms.BO_STUB_TASK_PROMPT_2.real_Optimize_with_BO import Real_Optimize_with_BO
+from algorithms.BO_STUB_TASK_PROMPT_2.bbob_Optimize_with_BO import BBOB_Optimize_with_BO
+
+import datetime as dt
 
 # -------------------  SETTINGS   ---------------------------------
  
@@ -35,7 +38,8 @@ PROBLEMS_TO_RUN = ["bbob", "real"]
  
 config = ExperimentConfig()
 BUDGET = config.experiment_evaluation_budget   # 600
-OUT_DIR = "results/stage2"                     
+# timestamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+OUT_DIR = f"results/stage2"                     
  
  
 # -----------------  BUDGET COUNTER   ---------------------------------------
@@ -160,6 +164,70 @@ def smoke_test():
             print(f"  OK | evaluations: {func.n_evals} | best: {func.best:.4f}")
 
     print("\n========== ALL TESTS PASSED ==========\n")
+
+def diagnostic_smoke_test():
+    print("\n========== DIAGNOSTIC SMOKE TEST ==========")
+
+    test_budget = min(25, BUDGET)
+
+    for algorithm_name, algorithm_class in ALGORITHMS.items():
+        for problem_name in PROBLEMS_TO_RUN:
+            print(f"Testing {algorithm_name} on {problem_name} (budget={test_budget})...")
+
+            problem, f_opt = make_problem(problem_name)
+            set_all_seeds(42)
+
+            lb = np.asarray(problem.bounds.lb, dtype=float).reshape(-1)
+            ub = np.asarray(problem.bounds.ub, dtype=float).reshape(-1)
+            if lb.size == 1:
+                lb = np.full(config.dimension, lb.item(), dtype=float)
+            if ub.size == 1:
+                ub = np.full(config.dimension, ub.item(), dtype=float)
+
+            out_of_bounds_count = 0
+            base_func = CountedFunction(problem, test_budget)
+
+            def checked_func(x):
+                nonlocal out_of_bounds_count
+                arr = np.asarray(x, dtype=float).flatten()
+                if np.any(arr < lb - 1e-9) or np.any(arr > ub + 1e-9):
+                    out_of_bounds_count += 1
+                return base_func(x)
+
+            algorithm = algorithm_class(
+                budget=test_budget,
+                dim=config.dimension,
+                initial_points=min(config.initial_points, max(1, test_budget // 3)),
+                random_seed=42,
+            )
+
+            import io
+            from contextlib import redirect_stdout
+
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                try:
+                    algorithm(checked_func)
+                except BudgetExceeded:
+                    pass
+
+            captured_out = buf.getvalue().strip()
+            if captured_out:
+                print(f"  [LOG] {captured_out}")
+
+            assert base_func.n_evals > 0, "No evaluations performed!"
+            assert base_func.n_evals <= test_budget, "Budget exceeded!"
+            assert np.isfinite(base_func.best), "Invalid objective value!"
+            assert out_of_bounds_count == 0, (
+                f"Out-of-bounds evaluations detected ({out_of_bounds_count}) on {problem_name}!"
+            )
+            assert "failed" not in captured_out.lower(), (
+                f"Fallback/error message printed during {algorithm_name} on {problem_name}: {captured_out}"
+            )
+
+            print(f"  OK | evals: {base_func.n_evals} | best: {base_func.best:.4f}")
+
+    print("\n========== DIAGNOSTIC SMOKE TEST PASSED ==========\n")
  
 # ---------------ALL SEEDS for one algorithm on one problem------------------
 
@@ -208,7 +276,8 @@ def run_all_seeds(algorithm_name, problem_name):
  
 if __name__ == "__main__":
     smoke_test()
-    for algorithm_name in ALGORITHMS_TO_RUN:
-        for problem_name in PROBLEMS_TO_RUN:
-            print("===", algorithm_name, "on", problem_name, "| budget", BUDGET, "===")
-            run_all_seeds(algorithm_name, problem_name)
+    diagnostic_smoke_test()
+    # for algorithm_name in ALGORITHMS_TO_RUN:
+    #     for problem_name in PROBLEMS_TO_RUN:
+    #         print("===", algorithm_name, "on", problem_name, "| budget", BUDGET, "===")
+    #         run_all_seeds(algorithm_name, problem_name)
